@@ -2,11 +2,30 @@ import React from 'react';
 import { 
   Search, 
   Plus,
+<<<<<<< HEAD
   Zap,
   Lock,
   CheckCircle2,
   XCircle,
   Settings2
+=======
+  ArrowRight,
+  ExternalLink,
+  ChevronRight,
+  Settings2,
+  Trash2,
+  Terminal,
+  Server,
+  DollarSign,
+  Users,
+  Grid,
+  X,
+  Check,
+  AlertTriangle,
+  Info,
+  Layers,
+  Power
+>>>>>>> 1deb1adfaaeb39358a986f70e97964339d140a1d
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -19,8 +38,17 @@ const MOCK_APPS = [
 
 export const Apps = () => {
   const [apps, setApps] = React.useState(MOCK_APPS);
+<<<<<<< HEAD
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [tempStates, setTempStates] = React.useState<any>({});
+=======
+  const [selectedApp, setSelectedApp] = React.useState<typeof MOCK_APPS[0] | null>(null);
+  const [isWizardOpen, setIsWizardOpen] = React.useState(false);
+  const [wizardStep, setWizardStep] = React.useState(1);
+  const [appToStop, setAppToStop] = React.useState<typeof MOCK_APPS[0] | null>(null);
+  const [tick, setTick] = React.useState(0);
+  const [glowActive, setGlowActive] = React.useState(false);
+>>>>>>> 1deb1adfaaeb39358a986f70e97964339d140a1d
 
   const startEdit = (app: any) => {
     setEditingId(app.id);
@@ -64,16 +92,52 @@ export const Apps = () => {
           <p className="text-sm text-slate-400 font-bold">멀린 허브 생태계 연동 보안 및 권한 제어 센터 (ADMIN)</p>
         </div>
         <div className="flex items-center gap-2">
+<<<<<<< HEAD
           <button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-sm text-[11px] font-bold transition-all">
             <Plus size={14} /> 새 인스턴스 할당
           </button>
           <button className="flex items-center gap-2 bg-[#2d5af0] hover:bg-blue-700 text-white px-4 py-2 rounded-sm text-[11px] font-bold shadow-lg shadow-indigo-100 transition-all">
             <Zap size={14} /> 엔진 최적화
+=======
+          <button 
+            onClick={() => setIsWizardOpen(true)}
+            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-sm text-[11px] font-bold transition-all active:scale-95"
+          >
+            <Plus size={14} />
+            새 인스턴스 할당
+          </button>
+          <button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-sm text-[11px] font-bold shadow-lg shadow-indigo-200 transition-all">
+            <Zap size={14} />
+            전체 엔진 최적화
+>>>>>>> 1deb1adfaaeb39358a986f70e97964339d140a1d
           </button>
         </div>
       </section>
 
+<<<<<<< HEAD
       {/* Main App Table */}
+=======
+      {/* Instance Summary Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {[
+          { label: "오늘의 총 매출 (M)", value: "8,421,000 M", sub: "전체 서비스 통합 크레딧 매출", icon: DollarSign, color: "text-emerald-500", bg: "border-l-emerald-500" },
+          { label: "전체 유저 세션 수", value: "482,901", sub: "최근 24시간 실시간 활성 세션", icon: Users, color: "text-indigo-600", bg: "border-l-indigo-500" },
+          { label: "활성 서비스 비율", value: "92.4%", sub: "42개 중 38개 서비스 정상 가동", icon: Activity, color: "text-indigo-500", bg: "border-l-indigo-500" },
+          { label: "평균 서버 부하 (Avg)", value: "31.4%", sub: "CPU/MEM 통합 기술 지표", icon: Cpu, color: "text-slate-400", bg: "border-l-slate-400 opacity-60" },
+        ].map((card, i) => (
+          <div key={i} className={cn("bg-white p-5 rounded-sm border border-slate-200 shadow-sm border-l-4", card.bg)}>
+            <div className="flex justify-between items-start mb-3">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{card.label}</p>
+              <card.icon size={18} className={card.color} />
+            </div>
+            <h3 className="text-2xl font-black text-[#131b2e] tracking-tighter">{card.value}</h3>
+            <p className="text-[10px] text-slate-400 font-medium mt-1">{card.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* App Instances Table */}
+>>>>>>> 1deb1adfaaeb39358a986f70e97964339d140a1d
       <section className="bg-white rounded-sm border border-slate-200 shadow-sm overflow-hidden mb-12">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
            <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest tracking-[0.2em]">Merlin Ecosystem Management</h3>
