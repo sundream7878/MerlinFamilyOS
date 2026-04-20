@@ -1,8 +1,14 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRouter from './src/server/auth.controller';
 import walletRouter from './src/server/wallet.controller';
+import { AppController } from './src/server/app.controller';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -29,13 +35,17 @@ app.use(express.json());
 // --- [API Routes] ---
 app.use('/api/auth', authRouter);
 app.use('/api/wallet', walletRouter);
+app.use('/api/apps', AppController);
 
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'Hub Core is breathing', 
-    timestamp: new Date().toISOString(),
-    services: ['Auth', 'Wallet', 'Secure Warp', 'CORS Gateway']
-  });
+// --- [Production Static Files] ---
+// 빌드된 정적 파일 서빙
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// API 외의 모든 경로는 index.html로 리다이렉트 (SPA 지원)
+app.get('*', (req, res, next) => {
+  // 만약 API 경로면 통과
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 app.listen(PORT, () => {
