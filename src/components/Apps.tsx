@@ -28,12 +28,10 @@ import {
   AlertTriangle,
   Info,
   Layers,
-  Power,
-  Lock
+  Power
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { ScopeManager } from './ScopeManager';
 
 const MOCK_APPS = [
   { id: 'APP-01', name: '금고지기 Main', status: 'Running', uptime: 12284902, cpu: '12%', mem: '1.2GB', instances: 4, type: 'Finance', mtnMode: false },
@@ -50,7 +48,6 @@ export const Apps = () => {
   const [appToStop, setAppToStop] = React.useState<typeof MOCK_APPS[0] | null>(null);
   const [tick, setTick] = React.useState(0);
   const [glowActive, setGlowActive] = React.useState(false);
-  const [isScopeManagerOpen, setIsScopeManagerOpen] = React.useState(false);
 
   // Real-time Uptime counter and Glow effect
   React.useEffect(() => {
@@ -322,13 +319,6 @@ export const Apps = () => {
         </div>
         <div className="flex items-center gap-2">
           <button 
-            onClick={() => setIsScopeManagerOpen(true)}
-            className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-sm text-[11px] font-bold shadow-sm transition-all"
-          >
-            <Lock size={14} />
-            권한 범위 관리
-          </button>
-          <button 
             onClick={() => setIsWizardOpen(true)}
             className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-sm text-[11px] font-bold transition-all active:scale-95"
           >
@@ -341,22 +331,6 @@ export const Apps = () => {
           </button>
         </div>
       </section>
-
-      {/* Scope Manager Modal */}
-      <AnimatePresence>
-        {isScopeManagerOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              onClick={() => setIsScopeManagerOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
-            />
-            <ScopeManager onCancel={() => setIsScopeManagerOpen(false)} onSave={() => setIsScopeManagerOpen(false)} />
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Instance Summary Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
