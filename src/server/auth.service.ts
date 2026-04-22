@@ -146,12 +146,4 @@ export const AuthService = {
   }
 };
 
-// --- [Self-Test Block] ---
-// 명령행에서 'npx tsx src/server/auth.service.ts'로 실행 시 테스트 발송 수행
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const testEmail = process.env.TEST_EMAIL || 'chiu3@naver.com'; // 👈 공장장님 전용 테스트 계정
-  console.log(`[Test] Sending OTP to ${testEmail}...`);
-  AuthService.requestOTP(testEmail)
-    .then(res => console.log('Test Result:', res))
-    .catch(err => console.error('Test Failed:', err));
-}
+// --- [Self-Test Block Removed for Production] ---
