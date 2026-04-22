@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --target=node20 --outfile=dist/server.cjs --external:fsevents --external:resend",
-    "start": "node dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/server.js --external:fsevents --external:resend",
+    "start": "node dist/server.js",
     "preview": "vite preview",
     "server": "tsx server.ts",
     "server:watch": "tsx --watch server.ts",
