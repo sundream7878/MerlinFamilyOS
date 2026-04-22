@@ -137,7 +137,11 @@ export const Users = () => {
                   <td className="px-3 py-3 border-r border-slate-100">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-md overflow-hidden border border-slate-100 shadow-sm p-0.5 bg-white shrink-0">
-                        <img src={`https://picsum.photos/seed/${user.email}/64/64`} className="w-full h-full object-cover rounded-md" alt="" />
+                        {user.avatar_url ? (
+                          <img src={user.avatar_url} className="w-full h-full object-cover rounded-md" alt="" />
+                        ) : (
+                          <img src={`https://picsum.photos/seed/${user.email}/64/64`} className="w-full h-full object-cover rounded-md" alt="" />
+                        )}
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-[14px] font-black text-slate-800 tracking-tight flex items-center gap-1 group-hover:text-[#2d5af0] transition-colors cursor-pointer truncate">

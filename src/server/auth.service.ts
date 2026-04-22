@@ -178,15 +178,9 @@ export const AuthService = {
     
     console.log(`[Auth] Attempting profile update for ${email}:`, data);
 
-    const updateData: any = {
-      nickname: data.nickname,
-      updated_at: new Date().toISOString()
-    };
-    
-    // avatar_url이 있을 때만 추가 (컬럼 존재 여부 불확실성 대비)
-    if (data.avatar_url) {
-      updateData.avatar_url = data.avatar_url;
-    }
+    // 1차 시도: 닉네임 + 아바타 (아바타 필드명이 맞을 경우)
+    const updateData: any = { nickname: data.nickname };
+    if (data.avatar_url) updateData.avatar_url = data.avatar_url;
 
     const { error } = await supabase
       .from('family_users')
@@ -194,23 +188,26 @@ export const AuthService = {
       .eq('email', email);
 
     if (error) {
-      console.error('[Auth] Profile update failed details:', error);
+      console.error('[Auth] First update attempt failed:', error.message);
       
-      // 만약 avatar_url 컬럼이 없어서 실패한 거라면 nickname만 재시도
-      if (error.message.includes('column') && error.message.includes('avatar_url')) {
-        console.warn('[Auth] avatar_url column missing, retrying with nickname only...');
-        const { error: retryError } = await supabase
-          .from('family_users')
-          .update({ nickname: data.nickname, updated_at: new Date().toISOString() })
-          .eq('email', email);
-          
-        if (!retryError) return { success: true, message: 'Nickname updated (avatar ignored)' };
-        throw new Error(`Retry failed: ${retryError.message}`);
+      // 2차 시도: 닉네임만 (모든 부가 필드 제외)
+      console.warn('[Auth] Retrying with nickname ONLY...');
+      const { data: retryData, error: retryError } = await supabase
+        .from('family_users')
+        .update({ nickname: data.nickname })
+        .eq('email', email)
+        .select();
+        
+      if (retryError) {
+        console.error('[Auth] Final retry failed:', retryError.message);
+        throw new Error(`최종 업데이트 실패: ${retryError.message}`);
       }
       
-      throw new Error(`프로필 업데이트 실패: ${error.message}`);
+      console.log('[Auth] Profile update successful (Nickname only):', retryData);
+      return { success: true, message: '별명만 업데이트되었습니다.' };
     }
 
+    console.log('[Auth] Profile update successful (Full)');
     return { success: true };
   }
 };
