@@ -38,8 +38,8 @@ app.use('/api/wallet', walletRouter);
 app.use('/api/apps', AppController);
 
 // --- [Production Static Files] ---
-// 빌드된 정적 파일 서빙 (dist/server.js와 같은 위치)
-const publicPath = __dirname; 
+// 빌드된 정적 파일 서빙 (작업 디렉토리의 dist 폴더 기준)
+const publicPath = path.join(process.cwd(), 'dist'); 
 app.use(express.static(publicPath));
 
 app.get('*', (req, res, next) => {
