@@ -154,7 +154,9 @@ export const Users = () => {
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                        <LayoutGrid size={12} className="text-[#2d5af0] opacity-30" />
-                       <span className="text-[13px] font-black text-slate-600 tracking-tight">{user.first_app_id === 'APP-01' ? '어그로필터' : '멀린앱'}</span>
+                       <span className="text-[13px] font-black text-slate-600 tracking-tight">
+                         {(!user.first_app_id || user.first_app_id === 'APP-01' || user.first_app_id === 'UNKNOWN') ? '어그로필터' : '멀린앱'}
+                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-5 text-center">

@@ -110,3 +110,20 @@
 - 빌드 검증: `npx next build` — Exit 0 ✅
 
 **다음 단계:** 실전 로그인 테스트 (OTP 발송 → 허브 대시보드 유저 적재 확인)
+
+---
+
+### [윈드서퍼 실행 보고] 프로필 저장 UPSERT 수정 (2026-04-23 00:42)
+
+**문제:** Hub family_uid로 로그인한 유저가 닉네임/프로필이미지 저장 시 `t_users`에 해당 row가 없어 404 발생
+**원인:** `/api/user/profile` PUT이 `UPDATE ... WHERE f_id = family_uid` → 0건 매칭
+
+**수정 내용:**
+- `app/api/user/profile/route.ts` PUT — `UPDATE` → `INSERT ... ON CONFLICT(f_id) DO UPDATE` (UPSERT)
+  - Hub family_uid 유저도 첫 프로필 저장 시 `t_users`에 row 자동 생성
+  - email 필드도 함께 저장
+- `app/p-settings/page.tsx` — handleSave에서 `email` 파라미터 추가 전달
+- 빌드 검증: `npx next build` — Exit 0 ✅
+- **허브 도움 불필요** — 앱 DB(t_users) UPSERT로 자체 해결
+
+**향후 참고:** `family_users`에 프로필 이미지 컬럼이 없음. 미션 #3 이후 `app_aggro_profiles` 이관 시 image 컬럼 추가 필요.
