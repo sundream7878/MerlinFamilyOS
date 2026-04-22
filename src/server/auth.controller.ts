@@ -38,10 +38,21 @@ router.get('/me', async (req, res) => {
   const decoded = AuthService.verifyToken(token);
   if (!decoded) return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
 
-  res.json({
-    success: true,
-    user: { email: decoded.email, familyUid: decoded.familyUid }
-  });
+  try {
+    // DB에서 최신 프로필 정보 가져오기 (성능을 위해 AuthService에 위임 권장하나 우선 직접 구현)
+    const profile = await AuthService.getProfileByEmail(decoded.email);
+    res.json({
+      success: true,
+      user: { 
+        email: decoded.email, 
+        familyUid: decoded.familyUid,
+        nickname: profile?.nickname,
+        avatar_url: profile?.avatar_url
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // 4. 프로필 정보 업데이트 (닉네임, 이미지 등)

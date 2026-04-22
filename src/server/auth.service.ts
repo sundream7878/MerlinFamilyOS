@@ -155,12 +155,31 @@ export const AuthService = {
       { expiresIn: '7d' }
     );
 
+    // 유저 정보 조회 (닉네임/이미지 실데이터 포함)
+    const { data: profile } = await supabase
+      .from('family_users')
+      .select('nickname, avatar_url')
+      .eq('email', email)
+      .single();
+
     return {
       token,
       familyUid,
       email,
-      nickname: email.split('@')[0]
+      nickname: profile?.nickname || email.split('@')[0],
+      avatar_url: profile?.avatar_url
     };
+  },
+
+  // 2-2. 프로필 단건 조회
+  getProfileByEmail: async (email: string) => {
+    if (!supabase) return null;
+    const { data } = await supabase
+      .from('family_users')
+      .select('nickname, avatar_url')
+      .eq('email', email)
+      .single();
+    return data;
   },
 
   // 3. 토큰 검증
