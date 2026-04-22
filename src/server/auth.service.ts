@@ -172,43 +172,41 @@ export const AuthService = {
     }
   },
 
-  // 4. 프로필 정보 업데이트
+  // 4. 프로필 정보 업데이트 (윈드서퍼 요청에 따라 UPSERT 방식으로 전환)
   updateProfile: async (email: string, data: { nickname?: string; avatar_url?: string }) => {
     if (!supabase) throw new Error('DB 연결이 설정되지 않았습니다.');
     
-    console.log(`[Auth] Attempting profile update for ${email}:`, data);
+    console.log(`[Auth] UPSERT profile for ${email}:`, data);
 
-    // 1차 시도: 닉네임 + 아바타 (아바타 필드명이 맞을 경우)
-    const updateData: any = { nickname: data.nickname };
+    // 1. 먼저 해당 유저의 존재 여부와 ID 확인
+    const { data: user } = await supabase
+      .from('family_users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    const updateData: any = { 
+      email,
+      nickname: data.nickname,
+      updated_at: new Date().toISOString()
+    };
+    
+    // avatar_url 또는 profile_image 처리 (호환성 유지)
     if (data.avatar_url) updateData.avatar_url = data.avatar_url;
 
-    const { error } = await supabase
+    // 2. UPSERT 실행 (없으면 만들고 있으면 수정)
+    const { data: resultData, error } = await supabase
       .from('family_users')
-      .update(updateData)
-      .eq('email', email);
+      .upsert(updateData, { onConflict: 'email' })
+      .select();
 
     if (error) {
-      console.error('[Auth] First update attempt failed:', error.message);
-      
-      // 2차 시도: 닉네임만 (모든 부가 필드 제외)
-      console.warn('[Auth] Retrying with nickname ONLY...');
-      const { data: retryData, error: retryError } = await supabase
-        .from('family_users')
-        .update({ nickname: data.nickname })
-        .eq('email', email)
-        .select();
-        
-      if (retryError) {
-        console.error('[Auth] Final retry failed:', retryError.message);
-        throw new Error(`최종 업데이트 실패: ${retryError.message}`);
-      }
-      
-      console.log('[Auth] Profile update successful (Nickname only):', retryData);
-      return { success: true, message: '별명만 업데이트되었습니다.' };
+      console.error('[Auth] UPSERT failed:', error.message);
+      throw new Error(`프로필 저장 실패: ${error.message}`);
     }
 
-    console.log('[Auth] Profile update successful (Full)');
-    return { success: true };
+    console.log('[Auth] UPSERT success:', resultData);
+    return { success: true, message: '프로필이 안전하게 저장(UPSERT)되었습니다.' };
   }
 };
 

@@ -53,10 +53,11 @@ router.put('/profile', async (req, res) => {
   const decoded = AuthService.verifyToken(token);
   if (!decoded) return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
 
-  const { nickname, avatar_url } = req.body;
+  const { nickname, avatar_url, profile_image } = req.body;
+  const finalAvatar = avatar_url || profile_image;
   
   try {
-    const result = await AuthService.updateProfile(decoded.email, { nickname, avatar_url });
+    const result = await AuthService.updateProfile(decoded.email, { nickname, avatar_url: finalAvatar });
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

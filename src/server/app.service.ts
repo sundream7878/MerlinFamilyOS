@@ -35,6 +35,13 @@ export const AppService = {
       console.error('DB Fetch Error:', error);
       return [];
     }
+    
+    // [DEBUG] 데이터 상태 확인용 로그 추가
+    if (data && data.length > 0) {
+      console.log(`[AppService] Fetched ${data.length} users. First user avatar:`, 
+        data[0].avatar_url ? `EXISTS (length: ${data[0].avatar_url.length})` : 'MISSING');
+    }
+
     return data;
   },
 

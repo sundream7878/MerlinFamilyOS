@@ -44,6 +44,16 @@
 - **balance**: BIGINT (모든 앱에서 공용으로 사용하는 총 잔액 C)
 - **updated_at**: TIMESTAMPTZ
 
+### family_wallet_transactions (통합 거래 내역)
+- **id**: UUID (PK)
+- **user_id**: UUID (REFERENCES family_users.id)
+- **app_id**: TEXT (거래 발생 앱 아이디)
+- **amount**: BIGINT (변동 금액, 차감은 마이너스)
+- **transaction_type**: TEXT (CHARGE, SPEND, REFUND 등)
+- **display_text**: TEXT (사용자에게 노출될 거래명)
+- **request_id**: TEXT (UNIQUE - 멱등성 보장을 위한 요청 고유 아이디)
+- **created_at**: TIMESTAMPTZ
+
 ---
 
 ## 3. 기록 및 로그 (App Specific)
