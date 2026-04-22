@@ -30,6 +30,19 @@ router.get('/users', async (req: Request, res: Response) => {
 });
 
 /**
+ * [GET] /api/apps/stats
+ * 대시보드 통계 정보 조회
+ */
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await AppService.getStats();
+    res.json(stats);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * [POST] /api/apps/:id/scopes
  * 특정 앱의 권한 정보 업데이트
  */

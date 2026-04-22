@@ -18,22 +18,29 @@ import { cn } from '../lib/utils';
 
 export const Users = () => {
   const [users, setUsers] = React.useState<any[]>([]);
+  const [stats, setStats] = React.useState<any>({ total: 0, today: 0, session: 0, rate: 0 });
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/apps/users');
-        const data = await response.json();
-        setUsers(data);
+        const [usersRes, statsRes] = await Promise.all([
+          fetch('/api/apps/users'),
+          fetch('/api/apps/stats')
+        ]);
+        const usersData = await usersRes.json();
+        const statsData = await statsRes.json();
+        
+        setUsers(usersData);
+        setStats(statsData);
       } catch (error) {
-        console.error('Failed to fetch users:', error);
+        console.error('Failed to fetch hub data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUsers();
+    fetchData();
   }, []);
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 relative">
@@ -56,10 +63,10 @@ export const Users = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         {[
-          { title: "전체 사용자", value: "1,248,392", unit: "명", icon: UsersIcon, color: "text-emerald-500", border: "border-l-emerald-500" },
-          { title: "오늘 신규", value: "+4,102", unit: "명", icon: UserPlus, color: "text-[#2d5af0]", border: "border-l-[#2d5af0]" },
-          { title: "실시간 세션", value: "18,529", unit: "건", icon: Zap, color: "text-amber-500", border: "border-l-amber-500" },
-          { title: "인증 완료율", value: "94.2", unit: "%", icon: ShieldCheck, color: "text-indigo-400", border: "border-l-indigo-400" },
+          { title: "전체 사용자", value: stats.total.toLocaleString(), unit: "명", icon: UsersIcon, color: "text-emerald-500", border: "border-l-emerald-500" },
+          { title: "오늘 신규", value: `+${stats.today}`, unit: "명", icon: UserPlus, color: "text-[#2d5af0]", border: "border-l-[#2d5af0]" },
+          { title: "실시간 세션", value: stats.session.toLocaleString(), unit: "건", icon: Zap, color: "text-amber-500", border: "border-l-amber-500" },
+          { title: "인증 완료율", value: stats.rate.toString(), unit: "%", icon: ShieldCheck, color: "text-indigo-400", border: "border-l-indigo-400" },
         ].map((card, i) => (
           <div key={i} className={cn("bg-white p-5 rounded-sm border border-slate-200 shadow-sm border-l-4", card.border)}>
             <div className="flex justify-between items-start mb-3">
@@ -127,14 +134,14 @@ export const Users = () => {
                       {user.id}
                     </span>
                   </td>
-                  <td className="px-4 py-5 border-r border-slate-100">
+              <td className="px-4 py-5 border-r border-slate-100">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 shadow-sm p-0.5 bg-white shrink-0">
-                        <img src={user.avatar} className="w-full h-full object-cover rounded-md" alt="" />
+                        <img src={`https://picsum.photos/seed/${user.email}/64/64`} className="w-full h-full object-cover rounded-md" alt="" />
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[17px] font-black text-slate-800 tracking-tight flex items-center gap-1 group-hover:text-[#2d5af0] transition-colors cursor-pointer">
-                          {user.nickname}
+                          {user.nickname || user.email.split('@')[0]}
                           <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-y-1 group-hover:translate-y-0" />
                         </span>
                         <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
@@ -147,22 +154,21 @@ export const Users = () => {
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                        <LayoutGrid size={12} className="text-[#2d5af0] opacity-30" />
-                       <span className="text-[13px] font-black text-slate-600 tracking-tight">{user.joinedApp}</span>
+                       <span className="text-[13px] font-black text-slate-600 tracking-tight">{user.first_app_id === 'APP-01' ? '어그로필터' : '멀린앱'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5 text-center">
                       <div className={cn(
                         "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter mx-auto",
-                        user.status === '활성' ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : 
-                        "bg-amber-50 text-amber-600 border border-amber-100"
+                        "bg-emerald-50 text-emerald-600 border border-emerald-100"
                       )}>
-                        {user.status === '활성' ? <ShieldCheck size={10} /> : <ShieldAlert size={10} />}
-                        {user.status}
+                        <ShieldCheck size={10} />
+                        활성
                       </div>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-[13px] font-black text-[#2d5af0] border border-white shadow-sm">
-                      {user.joinedCount}
+                      1
                     </div>
                   </td>
                   <td className="px-6 py-5 border-l border-slate-100">
@@ -180,7 +186,7 @@ export const Users = () => {
                   <td className="pr-6 py-5 text-center">
                      <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold text-slate-400">
                        <CalendarDays size={12} className="opacity-30" />
-                       {user.joinedDate}
+                       {new Date(user.created_at).toLocaleDateString()}
                      </div>
                   </td>
                 </tr>

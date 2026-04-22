@@ -53,6 +53,32 @@ const LOGS = [
 
 export const Dashboard = ({ onNavigate }: { onNavigate?: (page: string) => void }) => {
   const [filter, setFilter] = React.useState<string | null>(null);
+  const [stats, setStats] = React.useState<any>({ total: 0, today: 0, session: 0, rate: 0 });
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/apps/stats');
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const metrics = [
+    { title: "총 사용자 수", value: stats.total.toLocaleString(), status: "정상 운영 중", sub: "인증 완료 사용자 기준", border: "border-l-[#10b981]", icon: Users, iconColor: "text-[#10b981]" },
+    { title: "오늘 신규 인증 사용자", value: stats.today.toString(), status: "정상 운영 중", sub: "오늘 가입한 패밀리 멤버", border: "border-l-[#10b981]", icon: UserPlus, iconColor: "text-[#10b981]" },
+    { title: "현재 활성 사용자 수", value: stats.session.toLocaleString(), status: "실시간 세션", sub: "현재 접속 기준 (가상)", border: "border-l-[#f59e0b]", icon: Zap, iconColor: "text-[#f59e0b]" },
+    { title: "총 크레딧 잔액", value: "₩0", status: "준비 중", sub: "전체 보유 잔액", border: "border-l-slate-300", icon: Wallet, iconColor: "text-slate-300" },
+    { title: "오늘 크레딧 사용량", value: "₩0", status: "준비 중", sub: "오늘의 트랜잭션", border: "border-l-slate-300", icon: CreditCard, iconColor: "text-slate-300" },
+    { title: "추천 가입 수", value: "0", status: "정상", sub: "추천인 보상 대상 포함", border: "border-l-[#10b981]", icon: Share2, iconColor: "text-[#10b981]" },
+  ];
 
   const filteredLogs = filter 
     ? LOGS.filter(log => log.severity === filter)
@@ -91,7 +117,7 @@ export const Dashboard = ({ onNavigate }: { onNavigate?: (page: string) => void 
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {METRICS.map((m, i) => (
+        {metrics.map((m, i) => (
           <div 
             key={i} 
             onClick={() => {
@@ -109,8 +135,8 @@ export const Dashboard = ({ onNavigate }: { onNavigate?: (page: string) => void 
                 <p className="text-xs font-bold text-slate-500 mb-1">{m.title}</p>
                 <span className={cn(
                   "text-[10px] font-black px-2 py-0.5 rounded-full border",
-                  m.status.includes('정상') ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                  m.status.includes('주의') ? "bg-amber-50 text-amber-600 border-amber-100" :
+                  m.status.includes('정상') || m.status.includes('실시간') ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                  m.status.includes('주의') || m.status.includes('준비') ? "bg-amber-50 text-amber-600 border-amber-100" :
                   "bg-rose-50 text-rose-600 border-rose-100"
                 )}>
                   {m.status}

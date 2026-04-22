@@ -24,35 +24,44 @@ export const AppService = {
    */
   async listUsers() {
     console.log('[AppService] Fetching all users from DB...');
-    
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('family_users')
-        .select('*')
-        .order('created_at', { ascending: false });
+    if (!supabase) return [];
 
-      if (error) {
-        console.error('DB Fetch Error:', error);
-        return [];
-      }
+    const { data, error } = await supabase
+      .from('family_users')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      // 프론트엔드 형식에 맞게 가공
-      return data.map((user, index) => ({
-        no: index + 1,
-        id: user.family_uid,
-        email: user.email,
-        familyUid: user.family_uid,
-        nickname: user.nickname,
-        region: user.region || '',
-        joinedApp: user.first_app_id === 'APP-01' ? '어그로필터' : '멀린앱',
-        joinedCount: 1,
-        joinedDate: new Date(user.created_at).toLocaleDateString(),
-        status: '활성',
-        avatar: `https://picsum.photos/seed/${user.id}/64/64`
-      }));
+    if (error) {
+      console.error('DB Fetch Error:', error);
+      return [];
     }
+    return data;
+  },
 
-    return []; // DB 연결 안 됐을 때 빈 배열
+  /**
+   * 대시보드 통계 조회
+   */
+  async getStats() {
+    if (!supabase) return { total: 0, today: 0, session: 0, rate: 0 };
+
+    const { count: totalCount } = await supabase
+      .from('family_users')
+      .select('*', { count: 'exact', head: true });
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const { count: todayCount } = await supabase
+      .from('family_users')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', todayStart.toISOString());
+
+    return {
+      total: totalCount || 0,
+      today: todayCount || 0,
+      session: Math.floor((totalCount || 0) * 0.15) + 1, // 가상 세션 수
+      rate: 98.5
+    };
   },
 
   /**
