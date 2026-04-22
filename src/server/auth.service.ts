@@ -61,17 +61,35 @@ export const AuthService = {
     if (!supabase) throw new Error('DB 연결이 설정되지 않았습니다.');
 
     // [DB 검증] family_otp 테이블에서 조회
+    const now = new Date().toISOString();
+    console.log(`[Auth] Verifying OTP for ${email}, code: ${code}, now: ${now}`);
+
     const { data: otpRecord, error } = await supabase
       .from('family_otp')
       .select('*')
       .eq('email', email)
       .eq('otp_code', code)
-      .gt('expires_at', new Date().toISOString())
       .single();
 
-    if (error || !otpRecord) {
-      throw new Error('인증 코드가 올바르지 않거나 만료되었습니다.');
+    if (error) {
+      console.error(`❌ OTP Lookup Error: ${error.message}`);
+      throw new Error('인증 코드 확인 중 오류가 발생했습니다.');
     }
+
+    if (!otpRecord) {
+      console.warn(`🛑 Invalid OTP attempt for ${email} with code ${code}`);
+      throw new Error('인증 코드가 올바르지 않습니다.');
+    }
+
+    // 만료 확인
+    const expiresAt = new Date(otpRecord.expires_at);
+    const currentTime = new Date();
+    if (expiresAt < currentTime) {
+      console.warn(`🛑 Expired OTP for ${email}. Expired at: ${otpRecord.expires_at}, Current: ${currentTime.toISOString()}`);
+      throw new Error('인증 코드가 만료되었습니다.');
+    }
+
+    console.log(`✅ OTP Verified for ${email}. Proceeding to user persistence...`);
 
     // 검증 성공 후 기록 삭제 (1회용)
     await supabase.from('family_otp').delete().eq('id', otpRecord.id);
