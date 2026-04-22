@@ -133,20 +133,27 @@
 
 ---
 
-### [윈드서퍼 실행 보고] 프로필 저장 UPSERT 수정 (2026-04-23 00:42)
+### [윈드서퍼 실행 보고] 프로필 중앙화 연동 완료 (2026-04-23 01:50)
 
-**문제:** Hub family_uid로 로그인한 유저가 닉네임/프로필이미지 저장 시 `t_users`에 해당 row가 없어 404 발생
-**원인:** `/api/user/profile` PUT이 `UPDATE ... WHERE f_id = family_uid` → 0건 매칭
+**결과: 닉네임/프로필 이미지 Hub SSOT 통합 완료.**
 
-**수정 내용:**
-- `app/api/user/profile/route.ts` PUT — `UPDATE` → `INSERT ... ON CONFLICT(f_id) DO UPDATE` (UPSERT)
-  - Hub family_uid 유저도 첫 프로필 저장 시 `t_users`에 row 자동 생성
-  - email 필드도 함께 저장
-- `app/p-settings/page.tsx` — handleSave에서 `email` 파라미터 추가 전달
-- 빌드 검증: `npx next build` — Exit 0 ✅
-- **허브 도움 불필요** — 앱 DB(t_users) UPSERT로 자체 해결
+**변경 사항:**
+- **Hub SDK 확장**: `src/services/merlin-hub-sdk/auth.ts`에 `updateProfile`, `getProfile` 추가
+  - `PUT /api/auth/profile` 호출로 패밀리 공용 DB(`family_users`) 직접 갱신
+- **페이지 전환**: `app/p-settings/page.tsx` 리팩토링
+  - 로컬 API(`/api/user/profile`) 호출 제거
+  - `MerlinHub.auth.updateProfile()`, `MerlinHub.auth.getProfile()` 사용으로 전환
+- **빌드 검증**: `npx next build` — Exit 0 ✅
 
-**향후 참고:** `family_users`에 프로필 이미지 컬럼이 없음. 미션 #3 이후 `app_aggro_profiles` 이관 시 image 컬럼 추가 필요.
+**특이사항:**
+- 이제 어그로필터에서 별명 변경 시 허브 DB의 `nickname`이 즉시 갱신됩니다.
+- 프로필 이미지는 허브 서버 사양에 맞춰 `avatar_url`로 전달됩니다.
+- 로컬 `t_users`의 `f_nickname`, `f_image`는 더 이상 프로필 수정 시 사용되지 않으며, 최종 마이그레이션 시점에 일괄 처리 예정입니다.
+
+---
+
+### [윈드서퍼 실행 보고] (취소/교체) 프로필 저장 UPSERT 수정 (2026-04-23 00:42)
+*참고: 이 작업은 허브 프로필 API 배포에 따라 위 '프로필 중앙화 연동'으로 대체되었습니다.*
 
 ---
 

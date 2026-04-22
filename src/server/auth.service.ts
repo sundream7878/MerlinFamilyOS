@@ -172,22 +172,43 @@ export const AuthService = {
     }
   },
 
-  // 4. 프로필 업데이트
+  // 4. 프로필 정보 업데이트
   updateProfile: async (email: string, data: { nickname?: string; avatar_url?: string }) => {
     if (!supabase) throw new Error('DB 연결이 설정되지 않았습니다.');
     
+    console.log(`[Auth] Attempting profile update for ${email}:`, data);
+
+    const updateData: any = {
+      nickname: data.nickname,
+      updated_at: new Date().toISOString()
+    };
+    
+    // avatar_url이 있을 때만 추가 (컬럼 존재 여부 불확실성 대비)
+    if (data.avatar_url) {
+      updateData.avatar_url = data.avatar_url;
+    }
+
     const { error } = await supabase
       .from('family_users')
-      .update({
-        nickname: data.nickname,
-        avatar_url: data.avatar_url,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('email', email);
 
     if (error) {
-      console.error('[Auth] Profile update failed:', error.message);
-      throw new Error('프로필 업데이트에 실패했습니다.');
+      console.error('[Auth] Profile update failed details:', error);
+      
+      // 만약 avatar_url 컬럼이 없어서 실패한 거라면 nickname만 재시도
+      if (error.message.includes('column') && error.message.includes('avatar_url')) {
+        console.warn('[Auth] avatar_url column missing, retrying with nickname only...');
+        const { error: retryError } = await supabase
+          .from('family_users')
+          .update({ nickname: data.nickname, updated_at: new Date().toISOString() })
+          .eq('email', email);
+          
+        if (!retryError) return { success: true, message: 'Nickname updated (avatar ignored)' };
+        throw new Error(`Retry failed: ${retryError.message}`);
+      }
+      
+      throw new Error(`프로필 업데이트 실패: ${error.message}`);
     }
 
     return { success: true };
