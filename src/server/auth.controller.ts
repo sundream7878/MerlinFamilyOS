@@ -31,15 +31,36 @@ router.post('/verify-otp', async (req, res) => {
 
 // 3. 현재 세션 정보 (Me)
 router.get('/me', async (req, res) => {
-  // 실제 운영 환경에서는 JWT 미들웨어 통과 후 req.user 반환
-  // 임시로 헤더의 Bearer 토큰 존재 여부만 체크
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
 
+  const token = authHeader.split(' ')[1];
+  const decoded = AuthService.verifyToken(token);
+  if (!decoded) return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+
   res.json({
     success: true,
-    user: { email: 'admin@merlin.family', familyUid: 'mfn-admin-001' }
+    user: { email: decoded.email, familyUid: decoded.familyUid }
   });
+});
+
+// 4. 프로필 정보 업데이트 (닉네임, 이미지 등)
+router.put('/profile', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+
+  const token = authHeader.split(' ')[1];
+  const decoded = AuthService.verifyToken(token);
+  if (!decoded) return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
+
+  const { nickname, avatar_url } = req.body;
+  
+  try {
+    const result = await AuthService.updateProfile(decoded.email, { nickname, avatar_url });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;

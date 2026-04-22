@@ -18,6 +18,7 @@
 - `f_id`: Primary Key (연동 후 허브 UID로 대체 대상)
 - `f_credits`: 로컬 잔액 (허브 지갑으로 통합 대상)
 - `total_predictions`, `avg_gap`, `current_tier`: **[유지] 어그로필터 고유 서비스 데이터**
+> **[윈드서퍼 — 2026-04-23]** `f_id`에 Hub `family_uid`(mfn-xxx)도 저장됨. profile PUT을 UPSERT로 전환하여 Hub 유저 row 자동 생성. `f_nickname`/`f_image`는 향후 `app_aggro_profiles`로 이관 대상.
 
 ### t_analyses (영상 분석 데이터)
 - 어그로필터의 핵심 실물 데이터. (허브 시스템과 분리 유지)

@@ -102,15 +102,15 @@ export const Users = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black text-slate-400 uppercase tracking-tighter">
-                <th className="pl-6 py-4 w-12 text-center">NO.</th>
-                <th className="px-4 py-4 w-40 text-center">FAMILY UID</th>
-                <th className="px-4 py-4 w-64 text-left border-r border-slate-100">사용자 프로필</th>
-                <th className="px-6 py-4 w-40">최초 가입 앱</th>
-                <th className="px-6 py-4 w-32 text-center">현재상태</th>
-                <th className="px-6 py-4 w-32 text-center">가입 앱 수</th>
-                <th className="px-4 py-4 w-48 text-left border-l border-slate-100">지역 정보</th>
-                <th className="pr-6 py-4 text-center w-36">최초 가입일</th>
+              <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                <th className="pl-4 py-2.5 w-10 text-center">#</th>
+                <th className="px-2 py-2.5 w-32 text-center">FAMILY UID</th>
+                <th className="px-3 py-2.5 w-56 text-left border-r border-slate-100">사용자 프로필</th>
+                <th className="px-4 py-2.5 w-28">최초 가입 앱</th>
+                <th className="px-4 py-2.5 w-24 text-center">상태</th>
+                <th className="px-4 py-2.5 w-20 text-center">앱 수</th>
+                <th className="px-3 py-2.5 w-40 text-left border-l border-slate-100">지역 정보</th>
+                <th className="pr-4 py-2.5 text-center w-32">최초 가입일</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -126,68 +126,64 @@ export const Users = () => {
                     등록된 사용자가 없습니다.
                   </td>
                 </tr>
-              ) : users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-all group border-l-4 border-transparent hover:border-l-indigo-500">
-                  <td className="pl-6 py-5 text-[14px] font-black text-slate-300 text-center tabular-nums">{user.no}</td>
-                  <td className="px-4 py-5 text-center">
-                    <span className="inline-flex items-center gap-2 text-[11px] font-black text-slate-400 bg-slate-50 border border-slate-100 px-3 py-1 rounded-sm">
-                      {user.id}
+              ) : users.map((user, idx) => (
+                <tr key={user.id} className="hover:bg-slate-50/50 transition-all group border-l-4 border-transparent hover:border-l-indigo-500 text-[13px]">
+                  <td className="pl-4 py-3 font-black text-slate-300 text-center tabular-nums">{idx + 1}</td>
+                  <td className="px-2 py-3 text-center">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-sm cursor-help" title={user.id}>
+                      {user.id.substring(0, 8)}...
                     </span>
                   </td>
-              <td className="px-4 py-5 border-r border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 shadow-sm p-0.5 bg-white shrink-0">
+                  <td className="px-3 py-3 border-r border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-md overflow-hidden border border-slate-100 shadow-sm p-0.5 bg-white shrink-0">
                         <img src={`https://picsum.photos/seed/${user.email}/64/64`} className="w-full h-full object-cover rounded-md" alt="" />
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[17px] font-black text-slate-800 tracking-tight flex items-center gap-1 group-hover:text-[#2d5af0] transition-colors cursor-pointer">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[14px] font-black text-slate-800 tracking-tight flex items-center gap-1 group-hover:text-[#2d5af0] transition-colors cursor-pointer truncate">
                           {user.nickname || user.email.split('@')[0]}
-                          <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-all -translate-y-1 group-hover:translate-y-0" />
+                          <ArrowUpRight size={10} className="opacity-0 group-hover:opacity-100" />
                         </span>
-                        <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                          <Mail size={10} className="text-slate-300" />
+                        <span className="text-[10px] font-bold text-slate-400 truncate opacity-70">
                           {user.email}
                         </span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                       <LayoutGrid size={12} className="text-[#2d5af0] opacity-30" />
-                       <span className="text-[13px] font-black text-slate-600 tracking-tight">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                       <LayoutGrid size={11} className="text-[#2d5af0] opacity-30" />
+                       <span className="text-[12px] font-bold text-slate-600 truncate">
                          {(!user.first_app_id || user.first_app_id === 'APP-01' || user.first_app_id === 'UNKNOWN') ? '어그로필터' : '멀린앱'}
                        </span>
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-center">
-                      <div className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter mx-auto",
-                        "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                      )}>
-                        <ShieldCheck size={10} />
+                  <td className="px-4 py-3 text-center">
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-50 text-emerald-600 border border-emerald-100">
+                        <ShieldCheck size={9} />
                         활성
                       </div>
                   </td>
-                  <td className="px-6 py-5 text-center">
-                    <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-[13px] font-black text-[#2d5af0] border border-white shadow-sm">
+                  <td className="px-4 py-3 text-center">
+                    <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-50 text-[11px] font-black text-[#2d5af0] border border-slate-100">
                       1
                     </div>
                   </td>
-                  <td className="px-6 py-5 border-l border-slate-100">
-                    <div className="flex items-center gap-1.5 text-[12px] font-bold text-slate-400">
+                  <td className="px-3 py-3 border-l border-slate-100">
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400">
                       {user.region ? (
                         <>
-                          <MapPin size={12} className="text-indigo-300" />
-                          <span className="text-slate-600">{user.region}</span>
+                          <MapPin size={10} className="text-indigo-300" />
+                          <span className="text-slate-600 truncate">{user.region}</span>
                         </>
                       ) : (
-                        <span className="text-slate-200 italic">No Data</span>
+                        <span className="text-slate-200 italic text-[10px]">N/A</span>
                       )}
                     </div>
                   </td>
-                  <td className="pr-6 py-5 text-center">
-                     <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold text-slate-400">
-                       <CalendarDays size={12} className="opacity-30" />
+                  <td className="pr-4 py-3 text-center">
+                     <div className="flex items-center justify-center gap-1 text-[11px] font-bold text-slate-400">
+                       <CalendarDays size={10} className="opacity-30" />
                        {new Date(user.created_at).toLocaleDateString()}
                      </div>
                   </td>

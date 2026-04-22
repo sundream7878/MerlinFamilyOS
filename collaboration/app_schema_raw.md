@@ -155,6 +155,9 @@
 | t_users                 | f_notify_top10_change        | boolean                     | YES         |
 | t_users                 | f_ranking_threshold          | integer                     | YES         |
 | t_users                 | f_ad_free_until              | timestamp with time zone    | YES         |
+
+> **[윈드서퍼 메모 — 2026-04-23]** `f_id`에 Hub `family_uid`(mfn-xxx)도 저장됨. `/api/user/profile` PUT을 UPSERT로 전환하여 Hub 유저 첫 프로필 저장 시 row 자동 생성. `f_credits`는 Hub wallet 이관 예정, `f_nickname`/`f_image`는 향후 `app_aggro_profiles`로 이관 대상.
+
 | t_videos                | f_video_id                   | character varying           | NO          |
 | t_videos                | f_channel_id                 | character varying           | YES         |
 | t_videos                | f_title                      | text                        | NO          |

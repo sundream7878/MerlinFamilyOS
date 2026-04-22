@@ -48,7 +48,7 @@ export default function App() {
         <Sidebar activePage={activePage} setActivePage={setActivePage} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
         <div className="flex-1 w-full">
           <TopBar onMenuClick={() => setSidebarOpen(true)} />
-          <main className="mt-14 p-4 md:p-10 pt-4 max-w-[1600px] mx-auto min-h-[calc(100vh-5rem)] md:ml-64 transition-all duration-300">
+          <main className="mt-14 p-4 md:p-10 pt-4 max-w-[1600px] mx-auto min-h-[calc(100vh-5rem)] md:ml-52 transition-all duration-300">
             <AnimatePresence mode="wait">
           <motion.div
             key={activePage}

@@ -35,6 +35,9 @@
 | family_users               | created_at         | timestamp with time zone | YES         |
 | family_users               | region             | text                     | YES         |
 | family_users               | first_app_id       | text                     | YES         |
+
+> **[윈드서퍼 — 2026-04-23]** `nickname` 컬럼은 있으나 프로필 이미지(avatar) 컬럼 없음. 현재 이미지는 앱 DB `t_users.f_image`에 저장 중. 향후 `profile_image` 컬럼 추가 또는 `app_aggro_profiles`에서 관리 필요.
+
 | family_wallet_balances     | user_id            | uuid                     | NO          |
 | family_wallet_balances     | balance            | bigint                   | NO          |
 | family_wallet_balances     | updated_at         | timestamp with time zone | YES         |

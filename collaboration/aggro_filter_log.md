@@ -81,7 +81,27 @@
 - **기존 데이터 이관**: 기존 UUID(t_users.f_id) → Hub family_uid 매핑
 - **크레딧 완전 이관**: t_users.f_credits → Hub wallet API 전면 교체 (현재는 마커 + mfn- skip)
 
-**미션 #2 판정: 코드 레벨 리팩토링 완료. 31개 파일에 45개 마커로 구조 변경 증명.**
+*   **[미션 #2] 클라우드 허브 안착**: 2026-04-22 (완료)
+*   **[특이사항] 프로필 중앙화**: 2026-04-23 - 닉네임/프로필 이미지 Hub DB(`family_users`) 저장용 API 개설.
+
+---
+
+## 🔗 어그로필터(App) -> Merlin Hub(Core) 연동 규격
+
+### 1. 사용자 신원 정보 동기화 (Profile Update)
+어그로필터 앱 내에서 사용자 정보를 수정할 때, 로컬 DB가 아닌 Hub로 직접 요청하여 패밀리 공용 정보를 갱신합니다.
+
+- **Endpoint**: `PUT /api/auth/profile`
+- **Authentication**: `Bearer <Hub-Issued-Token>`
+- **Fields**:
+  - `nickname` (string): 패밀리 공용 닉네임
+  - `avatar_url` (string): 프로필 이미지 URL (S3/Supabase Storage 등)
+- **Status**: 🟢 가동 중 (2026-04-23 배포 완료)
+
+### 2. 향후 마이그레이션 계획 (데이터 통합)
+- **시점**: 현재 진행 중인 분석 작업 및 이슈 처리 완료 후.
+- **대상**: 어그로필터 내부 유저 테이블의 분석 자료 연동 링크.
+- **주의**: 마이그레이션 전까지 어그로필터의 기존 테이블 구조(분석 데이터 연결부)는 수정하지 않음.
 
 ---
 
@@ -127,3 +147,27 @@
 - **허브 도움 불필요** — 앱 DB(t_users) UPSERT로 자체 해결
 
 **향후 참고:** `family_users`에 프로필 이미지 컬럼이 없음. 미션 #3 이후 `app_aggro_profiles` 이관 시 image 컬럼 추가 필요.
+
+---
+
+### 🚨 [허브 협의 요청] 프로필 데이터 저장 아키텍처 (2026-04-23 01:11)
+
+**현재 상태 (임시):**
+- 닉네임/이미지 모두 앱 DB `t_users`에 UPSERT로 저장 중
+- 이건 허브 SSOT 원칙에 어긋남 — 닉네임은 `family_users.nickname`에 저장되어야 함
+
+**마스터 스키마 원칙에 따른 올바른 구조:**
+
+| 데이터 | 올바른 저장소 | 현재 저장소 (임시) | 비고 |
+|--------|-------------|-------------------|------|
+| nickname | Hub `family_users.nickname` | 앱 `t_users.f_nickname` | Hub API 필요 |
+| email | Hub `family_users.email` | Hub (이미 정상) | ✅ |
+| profile_image | Hub 또는 앱 확장 테이블 | 앱 `t_users.f_image` | Hub에 컬럼 없음 |
+| predictions, tier | 앱 `app_aggro_profiles` | 앱 `t_users` | 이관 예정 |
+| 알림설정 | 앱 `app_aggro_profiles` | 앱 `t_users` | 이관 예정 |
+
+**허브에 요청 사항:**
+1. **닉네임 수정 API** — `PATCH /api/users/profile` (또는 유사 엔드포인트)로 `family_users.nickname` 업데이트 가능해야 함
+2. **프로필 이미지 결정** — `family_users`에 `profile_image` 컬럼 추가할지, 앱 확장 테이블에서 관리할지 결정 필요
+
+**⚠️ 원칙:** 기존 어그로필터 스키마(`t_users` 등)는 최종 작업 완료 전까지 절대 수정하지 않는다. 허브와 협의 완료 후 한 번에 이관한다.

@@ -31,17 +31,17 @@ export const Sidebar = ({ activePage, setActivePage, isOpen, setIsOpen }: Sideba
 
   const sidebarContent = (
     <aside className={cn(
-      "fixed left-0 top-0 h-screen w-64 bg-merlin-dark flex flex-col py-6 z-50 overflow-hidden shadow-2xl transition-transform duration-300 md:translate-x-0",
+      "fixed left-0 top-0 h-screen w-52 bg-merlin-dark flex flex-col py-6 z-50 overflow-hidden shadow-2xl transition-transform duration-300 md:translate-x-0",
       isOpen ? "translate-x-0" : "-translate-x-full"
     )}>
-      <div className="px-6 mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-400 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Terminal size={18} className="text-merlin-dark" />
+      <div className="px-4 mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-indigo-400 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Terminal size={14} className="text-merlin-dark" />
           </div>
           <div>
-            <h1 className="text-lg font-black text-white font-headline tracking-tighter">Merlin Family</h1>
-            <p className="text-[10px] uppercase tracking-widest text-indigo-400/70 font-bold">OS Core Engine</p>
+            <h1 className="text-base font-black text-white font-headline tracking-tighter leading-none">Merlin</h1>
+            <p className="text-[9px] uppercase tracking-widest text-indigo-400/70 font-bold">OS Hub</p>
           </div>
         </div>
         <button 

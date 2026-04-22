@@ -161,6 +161,36 @@ export const AuthService = {
       email,
       nickname: email.split('@')[0]
     };
+  },
+
+  // 3. 토큰 검증
+  verifyToken: (token: string) => {
+    try {
+      return jwt.verify(token, JWT_SECRET) as any;
+    } catch (err) {
+      return null;
+    }
+  },
+
+  // 4. 프로필 업데이트
+  updateProfile: async (email: string, data: { nickname?: string; avatar_url?: string }) => {
+    if (!supabase) throw new Error('DB 연결이 설정되지 않았습니다.');
+    
+    const { error } = await supabase
+      .from('family_users')
+      .update({
+        nickname: data.nickname,
+        avatar_url: data.avatar_url,
+        updated_at: new Date().toISOString()
+      })
+      .eq('email', email);
+
+    if (error) {
+      console.error('[Auth] Profile update failed:', error.message);
+      throw new Error('프로필 업데이트에 실패했습니다.');
+    }
+
+    return { success: true };
   }
 };
 
