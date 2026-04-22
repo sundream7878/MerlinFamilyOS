@@ -17,10 +17,12 @@ const PORT = process.env.PORT || 3001;
 const whitelist = process.env.CORS_WHITELIST ? process.env.CORS_WHITELIST.split(',') : [];
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // 로컬 개발 환경이나 화이트리스트에 포함된 경우 허용
-    if (!origin || whitelist.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
+    // 로컬 개발 환경, 동일 출처(Origin), 또는 화이트리스트 포함 시 허용
+    const isSameOrigin = origin && origin.includes('onrender.com'); // 렌더 도메인 자동 허용
+    if (!origin || isSameOrigin || whitelist.indexOf(origin) !== -1 || origin.startsWith('http://localhost:')) {
       callback(null, true);
     } else {
+      console.warn(`🛑 CORS Blocked for origin: ${origin}`);
       callback(new Error('Not allowed by CORS Gateway'));
     }
   },
