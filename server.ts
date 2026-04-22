@@ -7,6 +7,16 @@ import authRouter from './src/server/auth.controller';
 import walletRouter from './src/server/wallet.controller';
 import { AppController } from './src/server/app.controller';
 
+// --- [Environment Check] ---
+const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'RESEND_API_KEY', 'JWT_SECRET'];
+requiredEnv.forEach(key => {
+  if (!process.env[key]) {
+    console.error(`❌ Missing Environment Variable: ${key}`);
+  } else {
+    console.log(`✅ Loaded: ${key} (${process.env[key].substring(0, 5)}...)`);
+  }
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
