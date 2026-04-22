@@ -38,13 +38,23 @@ app.use('/api/wallet', walletRouter);
 app.use('/api/apps', AppController);
 
 // --- [Production Static Files] ---
-// 빌드된 정적 파일 서빙 (작업 디렉토리의 dist 폴더 기준)
-const publicPath = path.join(process.cwd(), 'dist'); 
+const publicPath = path.resolve(process.cwd(), 'dist');
+console.log(`📂 Static files path: ${publicPath}`);
+
+// API 외의 정적 파일 우선 서빙
 app.use(express.static(publicPath));
 
+// API 외의 모든 경로는 index.html로 리다이렉트 (SPA 지원)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  res.sendFile(path.join(publicPath, 'index.html'));
+  
+  const indexPath = path.join(publicPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error(`❌ Failed to send index.html: ${err.message}`);
+      res.status(500).send("Frontend build not found. Please check deployment logs.");
+    }
+  });
 });
 
 app.listen(PORT, () => {

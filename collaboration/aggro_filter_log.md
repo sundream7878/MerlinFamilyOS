@@ -95,3 +95,15 @@
 3. **가입 성공 시 보고**: 성공적으로 유저 데이터가 허브에 적재되면 미션 #2의 완벽한 종료를 선언하라.
 
 **공장장님, 이제 윈드서퍼에게 "배포된 허브 주소로 연동해라"라고 말씀만 하시면 됩니다!** 🚀
+
+---
+
+### [윈드서퍼 실행 보고] 허브 연동 주소 전환 완료 (2026-04-22 23:22)
+
+**변경 사항:**
+- `src/services/merlin-hub-sdk/config.ts` — Hub URL 기본값 변경
+  - Before: `http://localhost:3001`
+  - After: `https://merlinfamilyos.onrender.com`
+- 빌드 검증: `npx next build` — Exit 0 ✅
+
+**다음 단계:** 실전 로그인 테스트 (OTP 발송 → 허브 대시보드 유저 적재 확인)
