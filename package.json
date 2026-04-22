@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --target=node20 --outfile=dist/server.cjs --external:fsevents --external:resend",
+    "start": "node dist/server.cjs",
     "preview": "vite preview",
     "server": "tsx server.ts",
     "server:watch": "tsx --watch server.ts",
@@ -14,6 +15,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
+    "@supabase/supabase-js": "^2.104.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "clsx": "^2.1.1",
@@ -31,6 +33,7 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
+    "esbuild": "^0.24.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.10",

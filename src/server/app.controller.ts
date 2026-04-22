@@ -17,6 +17,19 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
+ * [GET] /api/apps/users
+ * 전체 사용자 목록 조회
+ */
+router.get('/users', async (req: Request, res: Response) => {
+  try {
+    const users = await AppService.listUsers();
+    res.json(users);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * [POST] /api/apps/:id/scopes
  * 특정 앱의 권한 정보 업데이트
  */

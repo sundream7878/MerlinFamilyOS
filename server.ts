@@ -38,14 +38,13 @@ app.use('/api/wallet', walletRouter);
 app.use('/api/apps', AppController);
 
 // --- [Production Static Files] ---
-// 빌드된 정적 파일 서빙
-app.use(express.static(path.join(__dirname, 'dist')));
+// 빌드된 정적 파일 서빙 (dist/server.cjs 기준 상위 dist 폴더)
+const publicPath = path.join(__dirname, '.'); 
+app.use(express.static(publicPath));
 
-// API 외의 모든 경로는 index.html로 리다이렉트 (SPA 지원)
 app.get('*', (req, res, next) => {
-  // 만약 API 경로면 통과
   if (req.path.startsWith('/api')) return next();
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 app.listen(PORT, () => {
