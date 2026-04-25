@@ -2,6 +2,8 @@
  * Merlin Hub SDK — Auth Module
  * 이메일 OTP 인증: requestOTP → verifyOTP → JWT 저장
  * 프로필 관리: updateProfile → Hub family_users 직접 갱신
+ * 
+ * [2026-04-25] UUID 단일화 적용: familyUid 폐기, userId(UUID) 기반으로 전환
  */
 
 import { hubFetch, setSessionToken, clearSessionToken, getSessionToken } from './client';
@@ -15,7 +17,7 @@ export interface OTPRequestResult {
 export interface OTPVerifyResult {
   success: boolean;
   token?: string;
-  familyUid?: string;
+  userId?: string;      // 허브 UUID (유일한 식별자)
   email?: string;
   nickname?: string;
   avatar_url?: string;
@@ -65,15 +67,15 @@ export async function verifyOTP(email: string, code: string): Promise<OTPVerifyR
       setSessionToken(data.token);
     }
 
-    // familyUid 저장 (지갑 등에서 참조)
-    if (data.familyUid && typeof window !== 'undefined') {
-      localStorage.setItem('merlin_family_uid', data.familyUid);
+    // userId(UUID) 저장 (코인 차감 등에서 참조)
+    if (data.userId && typeof window !== 'undefined') {
+      localStorage.setItem('merlin_user_id', data.userId);
     }
 
     return {
       success: true,
       token: data.token,
-      familyUid: data.familyUid,
+      userId: data.userId,
       email: data.email || email,
       nickname: data.nickname,
       avatar_url: data.avatar_url,
@@ -87,7 +89,7 @@ export async function verifyOTP(email: string, code: string): Promise<OTPVerifyR
 export interface SessionResult {
   valid: boolean;
   email?: string;
-  familyUid?: string;
+  userId?: string;       // 허브 UUID
   nickname?: string;
   avatar_url?: string;
 }
@@ -109,7 +111,7 @@ export async function checkSession(): Promise<SessionResult> {
     return { 
       valid: true, 
       email: u.email, 
-      familyUid: u.familyUid,
+      userId: u.userId,
       nickname: u.nickname,
       avatar_url: u.avatar_url
     };
@@ -161,7 +163,6 @@ export async function updateProfile(params: ProfileUpdateParams): Promise<Profil
 
 /**
  * Hub에서 현재 유저 프로필 조회 (세션 토큰 기반)
- * 2026-04-23: /api/auth/me를 통해 최신 프로필까지 함께 가져옴
  */
 export async function getProfile(): Promise<ProfileResult> {
   try {
@@ -182,12 +183,12 @@ export async function getProfile(): Promise<ProfileResult> {
 }
 
 /**
- * 로그아웃 — 세션 토큰 삭제
+ * 로그아웃 — 세션 토큰 및 유저 정보 삭제
  */
 export function logout() {
   clearSessionToken();
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('merlin_family_uid');
+    localStorage.removeItem('merlin_user_id');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userId');
     localStorage.removeItem('userNickname');

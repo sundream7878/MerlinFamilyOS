@@ -94,7 +94,7 @@ export const AuthService = {
     // 검증 성공 후 기록 삭제 (1회용)
     await supabase.from('family_otp').delete().eq('id', otpRecord.id);
 
-    let familyUid = '';
+    let userId = ''; // UUID 단일 식별자
     
     // [DB 연동] 사용자 생성 및 조회
     if (supabase) {
@@ -107,15 +107,13 @@ export const AuthService = {
         .single();
 
       if (user) {
-        console.log(`[Auth] Existing user found: ${user.family_uid}`);
-        familyUid = user.family_uid;
+        console.log(`[Auth] Existing user found: ${user.id}`);
+        userId = user.id;
       } else {
-        // 2. 신규 유저 생성
+        // 2. 신규 유저 생성 (UUID는 Supabase가 자동 생성)
         console.log(`[Auth] Creating new user for ${email}...`);
-        familyUid = `mfn-${Math.random().toString(36).substr(2, 9)}`;
         const { data: newUser, error: insertError } = await supabase.from('family_users').insert({
           email,
-          family_uid: familyUid,
           nickname: email.split('@')[0],
           first_app_id: appId || 'UNKNOWN'
         }).select().single();
@@ -124,33 +122,29 @@ export const AuthService = {
           console.error('[Auth] Failed to create user:', insertError.message);
           throw new Error('유저 생성에 실패했습니다.');
         }
-        console.log(`[Auth] New user created: ${familyUid}`);
+        userId = newUser.id;
+        console.log(`[Auth] New user created: ${userId}`);
       }
 
-      // 4. 앱별 가입 이력 기록 (에러 방지를 위해 email 필드 제거)
+      // 3. 앱별 가입 이력 기록
       if (appId) {
         console.log(`[Auth] Logging registration for app: ${appId}`);
-        // 다시 한번 유저 ID 확보
-        const { data: userData } = await supabase.from('family_users').select('id').eq('email', email).single();
-        
-        if (userData) {
-          const { error: regError } = await supabase.from('family_user_registrations').upsert({
-            user_id: userData.id,
-            app_id: appId,
-            reward_stage: 1,
-            last_registered_at: new Date().toISOString()
-          }, { onConflict: 'user_id, app_id' });
+        const { error: regError } = await supabase.from('family_user_registrations').upsert({
+          user_id: userId,
+          app_id: appId,
+          reward_stage: 1,
+          last_registered_at: new Date().toISOString()
+        }, { onConflict: 'user_id, app_id' });
 
-          if (regError) console.error('[Auth] Registration log failed:', regError.message);
-        }
+        if (regError) console.error('[Auth] Registration log failed:', regError.message);
       }
     } else {
-      familyUid = `mfn-${Math.random().toString(36).substr(2, 9)}`; // DB 없을 때 폴백
+      userId = crypto.randomUUID(); // DB 없을 때 폴백
     }
 
-    // JWT 발행
+    // JWT 발행 (UUID 기반)
     const token = jwt.sign(
-      { email, familyUid, iat: Math.floor(Date.now() / 1000) },
+      { email, userId, iat: Math.floor(Date.now() / 1000) },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -164,7 +158,7 @@ export const AuthService = {
 
     return {
       token,
-      familyUid,
+      userId,
       email,
       nickname: profile?.nickname || email.split('@')[0],
       avatar_url: profile?.avatar_url

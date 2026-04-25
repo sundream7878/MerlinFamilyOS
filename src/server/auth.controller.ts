@@ -45,7 +45,7 @@ router.get('/me', async (req, res) => {
       success: true,
       user: { 
         email: decoded.email, 
-        familyUid: decoded.familyUid,
+        userId: decoded.userId,
         nickname: profile?.nickname,
         avatar_url: profile?.avatar_url
       }

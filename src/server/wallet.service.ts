@@ -7,35 +7,24 @@ const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supaba
 
 export const WalletService = {
   /**
-   * 유저의 현재 잔액 조회 (family_wallet_balances 테이블 기반)
+   * 유저의 현재 잔액 조회 (UUID 직접 사용)
    */
-  getBalance: async (familyUid: string) => {
+  getBalance: async (userId: string) => {
     if (!supabase) return 0;
 
-    // 1. 유저 UUID 먼저 조회
-    const { data: user } = await supabase
-      .from('family_users')
-      .select('id')
-      .eq('family_uid', familyUid)
-      .single();
-
-    if (!user) return 0;
-
-    // 2. 잔액 테이블 조회
     const { data: balanceData } = await supabase
       .from('family_wallet_balances')
       .select('balance')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single();
 
-    // 잔액 정보가 없으면 가입 환영 차원에서 0으로 시작 (또는 초기화 로직 수행)
     return balanceData?.balance || 0;
   },
 
   /**
-   * 크레딧 사용/충전 처리 (멱등성 보장 및 원장 동시 업데이트)
+   * 코인 사용/충전 처리 (멱등성 보장, UUID 기반)
    */
-  processTransaction: async (familyUid: string, payload: { 
+  processTransaction: async (userId: string, payload: { 
     amount: number; 
     app_id: string;
     request_id: string; 
@@ -46,16 +35,7 @@ export const WalletService = {
 
     const { amount, app_id, request_id, transaction_type, display_text } = payload;
 
-    // 1. 유저 UUID 조회
-    const { data: user } = await supabase
-      .from('family_users')
-      .select('id')
-      .eq('family_uid', familyUid)
-      .single();
-
-    if (!user) throw new Error('사용자를 찾을 수 없습니다.');
-
-    // 2. 멱등성 체크: 이미 처리된 트랜잭션인지 확인
+    // 1. 멱등성 체크: 이미 처리된 트랜잭션인지 확인
     const { data: existingTx } = await supabase
       .from('family_wallet_transactions')
       .select('id')
@@ -63,14 +43,13 @@ export const WalletService = {
       .single();
 
     if (existingTx) {
-      const balance = await WalletService.getBalance(familyUid);
+      const balance = await WalletService.getBalance(userId);
       return { success: true, balance, status: 'ALREADY_PROCESSED' };
     }
 
-    // 3. 트랜잭션 기록 및 잔액 업데이트 (실제 운영 시 RPC나 Transaction 사용 권장)
-    // 기록 저장
+    // 2. 트랜잭션 기록
     await supabase.from('family_wallet_transactions').insert({
-      user_id: user.id,
+      user_id: userId,
       app_id,
       amount,
       request_id,
@@ -78,17 +57,17 @@ export const WalletService = {
       display_text
     });
 
-    // 잔액 업데이트 (Upsert)
-    const currentBalance = await WalletService.getBalance(familyUid);
+    // 3. 잔액 업데이트 (Upsert)
+    const currentBalance = await WalletService.getBalance(userId);
     const newBalance = currentBalance + amount;
 
     await supabase.from('family_wallet_balances').upsert({
-      user_id: user.id,
+      user_id: userId,
       balance: newBalance,
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' });
 
-    console.log(`[Wallet] Transaction ${transaction_type}: ${amount}C (UID: ${familyUid})`);
+    console.log(`[Wallet] Transaction ${transaction_type}: ${amount}C (UUID: ${userId})`);
 
     return {
       success: true,

@@ -15,7 +15,7 @@ router.get('/balance', async (req, res) => {
   if (!decoded) return res.status(401).json({ success: false, message: '유효하지 않은 토큰입니다.' });
 
   try {
-    const balance = await WalletService.getBalance(decoded.familyUid);
+    const balance = await WalletService.getBalance(decoded.userId);
     res.json({ success: true, balance });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -24,7 +24,7 @@ router.get('/balance', async (req, res) => {
 
 // 2. 통합 트랜잭션 처리 (충전/차감/사용)
 router.post('/transaction', async (req, res) => {
-  const { familyUid, amount, request_id, transaction_type, display_text, app_id } = req.body;
+  const { userId, amount, request_id, transaction_type, display_text, app_id } = req.body;
   const appSecret = req.headers['x-app-secret'];
 
   // [Security] 서버-투-서버 인증 (어그로필터 등 앱에서 호출 시)
@@ -35,12 +35,12 @@ router.post('/transaction', async (req, res) => {
     return res.status(403).json({ success: false, message: 'App 인증에 실패했습니다.' });
   }
 
-  if (!familyUid || amount === undefined || !request_id) {
+  if (!userId || amount === undefined || !request_id) {
     return res.status(400).json({ success: false, message: '필수 데이터가 누락되었습니다.' });
   }
 
   try {
-    const result = await WalletService.processTransaction(familyUid, {
+    const result = await WalletService.processTransaction(userId, {
       amount,
       app_id: app_id || 'UNKNOWN',
       request_id,
