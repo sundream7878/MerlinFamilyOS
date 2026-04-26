@@ -19,6 +19,18 @@ function isMissingFamilyUsersTableError(error: any): boolean {
   return msg.includes("public.family_users") || msg.includes('family_users');
 }
 
+function isSupabaseConnectivityError(error: any): boolean {
+  const msg = String(error?.message || '').toLowerCase();
+  return (
+    msg.includes('fetch failed') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('network') ||
+    msg.includes('econnrefused') ||
+    msg.includes('enotfound') ||
+    msg.includes('etimedout')
+  );
+}
+
 // Supabase Admin Client (환경변수 필수)
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -41,9 +53,9 @@ export const AuthService = {
       });
 
       if (insertOtpError) {
-        if (isMissingOtpTableError(insertOtpError)) {
+        if (isMissingOtpTableError(insertOtpError) || isSupabaseConnectivityError(insertOtpError)) {
           memoryOtpStore.set(email, { code, expiresAt: expires_at });
-          console.warn('[Auth] family_otp 테이블 없음 - 메모리 OTP 저장으로 폴백');
+          console.warn('[Auth] OTP 저장 DB 오류 - 메모리 OTP 저장으로 폴백:', insertOtpError.message);
         } else {
           throw new Error(`OTP 저장 실패: ${insertOtpError.message}`);
         }
@@ -82,36 +94,43 @@ export const AuthService = {
 
   // 2. OTP 검증 및 JWT 발급
   verifyOTP: async (email: string, code: string, appId?: string) => {
-    if (!supabase) throw new Error('DB 연결이 설정되지 않았습니다.');
-
     // [DB 검증] family_otp 테이블에서 조회
     const now = new Date().toISOString();
     console.log(`[Auth] Verifying OTP for ${email}, code: ${code}, now: ${now}`);
 
     let otpRecord: any = null;
-    let useMemoryFallback = false;
+    let useMemoryFallback = !supabase;
 
-    const { data: dbOtpRecord, error } = await supabase
-      .from('family_otp')
-      .select('*')
-      .eq('email', email)
-      .eq('otp_code', code)
-      .single();
+    if (supabase) {
+      const { data: dbOtpRecord, error } = await supabase
+        .from('family_otp')
+        .select('*')
+        .eq('email', email)
+        .eq('otp_code', code)
+        .single();
 
-    if (error) {
-      if (isMissingOtpTableError(error)) {
-        useMemoryFallback = true;
-        const mem = memoryOtpStore.get(email);
-        if (mem && mem.code === code) {
-          otpRecord = { id: `memory:${email}`, expires_at: mem.expiresAt };
-          console.warn('[Auth] family_otp 테이블 없음 - 메모리 OTP 검증으로 폴백');
+      if (error) {
+        if (isMissingOtpTableError(error) || isSupabaseConnectivityError(error)) {
+          useMemoryFallback = true;
+          const mem = memoryOtpStore.get(email);
+          if (mem && mem.code === code) {
+            otpRecord = { id: `memory:${email}`, expires_at: mem.expiresAt };
+            console.warn('[Auth] OTP 조회 DB 오류 - 메모리 OTP 검증으로 폴백');
+          }
+        } else {
+          console.error(`❌ OTP Lookup Error: ${error.message}`);
+          throw new Error('인증 코드 확인 중 오류가 발생했습니다.');
         }
       } else {
-        console.error(`❌ OTP Lookup Error: ${error.message}`);
-        throw new Error('인증 코드 확인 중 오류가 발생했습니다.');
+        otpRecord = dbOtpRecord;
       }
     } else {
-      otpRecord = dbOtpRecord;
+      const mem = memoryOtpStore.get(email);
+      if (mem && mem.code === code) {
+        useMemoryFallback = true;
+        otpRecord = { id: `memory:${email}`, expires_at: mem.expiresAt };
+        console.warn('[Auth] Supabase 미연결 - 메모리 OTP 검증으로 폴백');
+      }
     }
 
     if (!otpRecord) {
@@ -133,7 +152,10 @@ export const AuthService = {
     if (useMemoryFallback) {
       memoryOtpStore.delete(email);
     } else {
-      await supabase.from('family_otp').delete().eq('id', otpRecord.id);
+      const { error: deleteError } = await supabase!.from('family_otp').delete().eq('id', otpRecord.id);
+      if (deleteError) {
+        console.warn('[Auth] OTP 삭제 실패(무시 가능):', deleteError.message);
+      }
     }
 
     let userId = ''; // UUID 단일 식별자
@@ -148,11 +170,11 @@ export const AuthService = {
         .eq('email', email)
         .single();
 
-      if (fetchError && isMissingFamilyUsersTableError(fetchError)) {
+      if (fetchError && (isMissingFamilyUsersTableError(fetchError) || isSupabaseConnectivityError(fetchError))) {
         const memUser = memoryUserStore.get(email);
         if (memUser) {
           userId = memUser.id;
-          console.warn('[Auth] family_users 테이블 없음 - 메모리 유저 조회로 폴백');
+          console.warn('[Auth] family_users 조회 DB 오류 - 메모리 유저 조회로 폴백');
         } else {
           userId = crypto.randomUUID();
           memoryUserStore.set(email, {
@@ -160,7 +182,7 @@ export const AuthService = {
             nickname: email.split('@')[0],
             avatar_url: '',
           });
-          console.warn('[Auth] family_users 테이블 없음 - 메모리 유저 생성으로 폴백');
+          console.warn('[Auth] family_users 조회 DB 오류 - 메모리 유저 생성으로 폴백');
         }
       } else if (user) {
         console.log(`[Auth] Existing user found: ${user.id}`);
@@ -175,14 +197,14 @@ export const AuthService = {
         }).select().single();
 
         if (insertError) {
-          if (isMissingFamilyUsersTableError(insertError)) {
+          if (isMissingFamilyUsersTableError(insertError) || isSupabaseConnectivityError(insertError)) {
             userId = crypto.randomUUID();
             memoryUserStore.set(email, {
               id: userId,
               nickname: email.split('@')[0],
               avatar_url: '',
             });
-            console.warn('[Auth] family_users 테이블 없음 - 메모리 유저 생성으로 폴백');
+            console.warn('[Auth] family_users 생성 DB 오류 - 메모리 유저 생성으로 폴백');
           } else {
             console.error('[Auth] Failed to create user:', insertError.message);
             throw new Error('유저 생성에 실패했습니다.');
@@ -225,7 +247,7 @@ export const AuthService = {
         .eq('email', email)
         .single();
 
-      if (profileError && isMissingFamilyUsersTableError(profileError)) {
+      if (profileError && (isMissingFamilyUsersTableError(profileError) || isSupabaseConnectivityError(profileError))) {
         profile = memoryUserStore.get(email) || null;
       } else {
         profile = data;
