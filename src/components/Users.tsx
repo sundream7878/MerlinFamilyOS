@@ -104,7 +104,7 @@ export const Users = () => {
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
                 <th className="pl-4 py-2.5 w-10 text-center">#</th>
-                <th className="px-2 py-2.5 w-32 text-center">FAMILY UID</th>
+                <th className="px-2 py-2.5 w-32 text-center">HUB UUID</th>
                 <th className="px-3 py-2.5 w-56 text-left border-r border-slate-100">사용자 프로필</th>
                 <th className="px-4 py-2.5 w-28">최초 가입 앱</th>
                 <th className="px-4 py-2.5 w-24 text-center">상태</th>
@@ -130,7 +130,14 @@ export const Users = () => {
                 <tr key={user.id} className="hover:bg-slate-50/50 transition-all group border-l-4 border-transparent hover:border-l-indigo-500 text-[13px]">
                   <td className="pl-4 py-3 font-black text-slate-300 text-center tabular-nums">{idx + 1}</td>
                   <td className="px-2 py-3 text-center">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-sm cursor-help" title={user.id}>
+                    <span 
+                      className="inline-flex items-center gap-1 text-[10px] font-black text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-sm cursor-copy hover:bg-slate-100 hover:text-indigo-600 transition-colors" 
+                      title="클릭하여 전체 UUID 복사"
+                      onClick={() => {
+                        navigator.clipboard.writeText(user.id);
+                        alert('UUID가 복사되었습니다.');
+                      }}
+                    >
                       {user.id.substring(0, 8)}...
                     </span>
                   </td>

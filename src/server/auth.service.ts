@@ -6,6 +6,19 @@ import { createClient } from '@supabase/supabase-js';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const JWT_SECRET = process.env.JWT_SECRET || 'merlin-hub-secret-2026';
 
+const memoryOtpStore = new Map<string, { code: string; expiresAt: string }>();
+const memoryUserStore = new Map<string, { id: string; nickname: string; avatar_url?: string }>();
+
+function isMissingOtpTableError(error: any): boolean {
+  const msg = String(error?.message || '');
+  return msg.includes("public.family_otp") || msg.includes('family_otp');
+}
+
+function isMissingFamilyUsersTableError(error: any): boolean {
+  const msg = String(error?.message || '');
+  return msg.includes("public.family_users") || msg.includes('family_users');
+}
+
 // Supabase Admin Client (환경변수 필수)
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -21,11 +34,22 @@ export const AuthService = {
 
     // [DB 저장] family_otp 테이블에 기록
     if (supabase) {
-      await supabase.from('family_otp').insert({
+      const { error: insertOtpError } = await supabase.from('family_otp').insert({
         email,
         otp_code: code,
         expires_at
       });
+
+      if (insertOtpError) {
+        if (isMissingOtpTableError(insertOtpError)) {
+          memoryOtpStore.set(email, { code, expiresAt: expires_at });
+          console.warn('[Auth] family_otp 테이블 없음 - 메모리 OTP 저장으로 폴백');
+        } else {
+          throw new Error(`OTP 저장 실패: ${insertOtpError.message}`);
+        }
+      }
+    } else {
+      memoryOtpStore.set(email, { code, expiresAt: expires_at });
     }
 
     try {
@@ -64,7 +88,10 @@ export const AuthService = {
     const now = new Date().toISOString();
     console.log(`[Auth] Verifying OTP for ${email}, code: ${code}, now: ${now}`);
 
-    const { data: otpRecord, error } = await supabase
+    let otpRecord: any = null;
+    let useMemoryFallback = false;
+
+    const { data: dbOtpRecord, error } = await supabase
       .from('family_otp')
       .select('*')
       .eq('email', email)
@@ -72,8 +99,19 @@ export const AuthService = {
       .single();
 
     if (error) {
-      console.error(`❌ OTP Lookup Error: ${error.message}`);
-      throw new Error('인증 코드 확인 중 오류가 발생했습니다.');
+      if (isMissingOtpTableError(error)) {
+        useMemoryFallback = true;
+        const mem = memoryOtpStore.get(email);
+        if (mem && mem.code === code) {
+          otpRecord = { id: `memory:${email}`, expires_at: mem.expiresAt };
+          console.warn('[Auth] family_otp 테이블 없음 - 메모리 OTP 검증으로 폴백');
+        }
+      } else {
+        console.error(`❌ OTP Lookup Error: ${error.message}`);
+        throw new Error('인증 코드 확인 중 오류가 발생했습니다.');
+      }
+    } else {
+      otpRecord = dbOtpRecord;
     }
 
     if (!otpRecord) {
@@ -92,7 +130,11 @@ export const AuthService = {
     console.log(`✅ OTP Verified for ${email}. Proceeding to user persistence...`);
 
     // 검증 성공 후 기록 삭제 (1회용)
-    await supabase.from('family_otp').delete().eq('id', otpRecord.id);
+    if (useMemoryFallback) {
+      memoryOtpStore.delete(email);
+    } else {
+      await supabase.from('family_otp').delete().eq('id', otpRecord.id);
+    }
 
     let userId = ''; // UUID 단일 식별자
     
@@ -106,7 +148,21 @@ export const AuthService = {
         .eq('email', email)
         .single();
 
-      if (user) {
+      if (fetchError && isMissingFamilyUsersTableError(fetchError)) {
+        const memUser = memoryUserStore.get(email);
+        if (memUser) {
+          userId = memUser.id;
+          console.warn('[Auth] family_users 테이블 없음 - 메모리 유저 조회로 폴백');
+        } else {
+          userId = crypto.randomUUID();
+          memoryUserStore.set(email, {
+            id: userId,
+            nickname: email.split('@')[0],
+            avatar_url: '',
+          });
+          console.warn('[Auth] family_users 테이블 없음 - 메모리 유저 생성으로 폴백');
+        }
+      } else if (user) {
         console.log(`[Auth] Existing user found: ${user.id}`);
         userId = user.id;
       } else {
@@ -117,13 +173,24 @@ export const AuthService = {
           nickname: email.split('@')[0],
           first_app_id: appId || 'UNKNOWN'
         }).select().single();
-        
+
         if (insertError) {
-          console.error('[Auth] Failed to create user:', insertError.message);
-          throw new Error('유저 생성에 실패했습니다.');
+          if (isMissingFamilyUsersTableError(insertError)) {
+            userId = crypto.randomUUID();
+            memoryUserStore.set(email, {
+              id: userId,
+              nickname: email.split('@')[0],
+              avatar_url: '',
+            });
+            console.warn('[Auth] family_users 테이블 없음 - 메모리 유저 생성으로 폴백');
+          } else {
+            console.error('[Auth] Failed to create user:', insertError.message);
+            throw new Error('유저 생성에 실패했습니다.');
+          }
+        } else {
+          userId = newUser.id;
+          console.log(`[Auth] New user created: ${userId}`);
         }
-        userId = newUser.id;
-        console.log(`[Auth] New user created: ${userId}`);
       }
 
       // 3. 앱별 가입 이력 기록
@@ -150,11 +217,20 @@ export const AuthService = {
     );
 
     // 유저 정보 조회 (닉네임/이미지 실데이터 포함)
-    const { data: profile } = await supabase
-      .from('family_users')
-      .select('nickname, avatar_url')
-      .eq('email', email)
-      .single();
+    let profile: any = null;
+    if (supabase) {
+      const { data, error: profileError } = await supabase
+        .from('family_users')
+        .select('nickname, avatar_url')
+        .eq('email', email)
+        .single();
+
+      if (profileError && isMissingFamilyUsersTableError(profileError)) {
+        profile = memoryUserStore.get(email) || null;
+      } else {
+        profile = data;
+      }
+    }
 
     return {
       token,

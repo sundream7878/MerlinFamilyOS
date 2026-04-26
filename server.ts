@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import authRouter from './src/server/auth.controller';
 import walletRouter from './src/server/wallet.controller';
 import { AppController } from './src/server/app.controller';
+import adminCoinRouter from './src/server/admin.coin.controller';
 
 // --- [Environment Check] ---
 const requiredEnv = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'RESEND_API_KEY', 'JWT_SECRET'];
@@ -49,6 +50,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/api/auth', authRouter);
 app.use('/api/wallet', walletRouter);
 app.use('/api/apps', AppController);
+app.use('/api/admin', adminCoinRouter);
 
 // --- [Production Static Files] ---
 const publicPath = path.resolve(process.cwd(), 'dist');

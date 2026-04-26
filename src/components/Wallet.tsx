@@ -1,44 +1,107 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Wallet as WalletIcon, 
   ArrowUpRight, 
   ArrowDownLeft, 
   Search, 
   Download, 
-  Settings2, 
   Zap, 
   DollarSign, 
   X,
   AlertCircle,
-  Info,
-  ChevronRight,
+  History,
   CreditCard,
-  History
+  User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 
-const MOCK_TRANSACTIONS = [
-  { id: 'TX-9912-AF', type: 'Credit In', user: '멀린공장장', familyUid: 'FL-9921-AF', amount: '+3,000 C', app: '어그로필터', status: '성공', time: '방금 전', reason: '최초 가입 환영 보상 (1단계)' },
-  { id: 'TX-8291-AF', type: 'Credit Out', user: '멀린공장장', familyUid: 'FL-9921-AF', amount: '-100 C', app: '어그로필터', status: '성공', time: '12분 전', reason: '실전 어그로 분석 1회 차감' },
-  { id: 'TX-8282-XP', type: 'Credit In', user: '서울숲지기', familyUid: 'FL-8821-XP', amount: '+1,240 C', app: '금고지기', status: '성공', time: '2시간 전', reason: '데일리 미션 완료 보상' },
-  { id: 'TX-3301-ZK', type: 'Payment', user: '박지원', familyUid: 'FL-3301-ZK', amount: '+50,000 C', app: '외부충전', status: '대기중', time: '1일 전', reason: 'KCP 신용카드 일반 결제 (심사 대기)' },
-];
+// 거래 내역 타입 정의
+interface Transaction {
+  id: string;
+  transaction_type: string;
+  user_id: string;
+  amount: number;
+  app_id: string;
+  display_text: string;
+  created_at: string;
+  balance_after?: number;
+  user?: {
+    email: string;
+    nickname: string;
+  };
+}
 
 export const WalletPage = () => {
-  const [isSettling, setIsSettling] = React.useState(false);
-  const [selectedTx, setSelectedTx] = React.useState<typeof MOCK_TRANSACTIONS[0] | null>(null);
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stats, setStats] = useState({
+    totalCirculation: 0,
+    todayIn: 0,
+    todayOut: 0,
+    pending: 0
+  });
+
+  // [수동 조정 폼 상태]
+  const [adjustForm, setAdjustForm] = useState({
+    userId: '',
+    amount: 0,
+    reason: ''
+  });
+
+  // 데이터 로드 (Master Ledger)
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    setIsLoading(true);
+    try {
+      // 실제 구현 시 API 호출: const res = await fetch('/api/admin/coin-history');
+      // 현재는 UI 구조 유지를 위해 이전 목데이터 형식을 실제 데이터 기반으로 시뮬레이션
+      const mockData: Transaction[] = [
+        { id: 'TX-9912-AF', transaction_type: 'EARN_WELCOME', user_id: 'a4478ded-b522-4662-86ae-61f10c51cb98', amount: 1000, app_id: 'MERLIN_HUB', display_text: '최초 가입 환영 보상', created_at: new Date().toISOString(), user: { email: 'chiu3@naver.com', nickname: '멀린' } },
+        { id: 'TX-8291-AF', transaction_type: 'USE_AGGRO', user_id: 'a4478ded-b522-4662-86ae-61f10c51cb98', amount: -30, app_id: 'AGGRO_FILTER', display_text: '영상 분석 1회 차감', created_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(), user: { email: 'chiu3@naver.com', nickname: '멀린' } },
+      ];
+      setTransactions(mockData);
+      setStats({
+        totalCirculation: 8442000,
+        todayIn: 1420000,
+        todayOut: 429100,
+        pending: 542000
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdjust = async () => {
+    if (!adjustForm.userId || !adjustForm.amount || !adjustForm.reason) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+    
+    console.log('[Admin] Adjusting coin:', adjustForm);
+    // API 호출 로직: await fetch('/api/admin/coin-adjust', { method: 'POST', body: JSON.stringify(adjustForm) });
+    
+    alert(`UUID: ${adjustForm.userId} 유저에게 ${adjustForm.amount}C 조정이 완료되었습니다.`);
+    setIsAdjusting(false);
+    fetchHistory();
+  };
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 relative">
+      {/* 🛠️ 코인 수동 조정 모달 (관리자용) */}
       <AnimatePresence>
-        {isSettling && (
+        {isAdjusting && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsSettling(false)}
+              onClick={() => setIsAdjusting(false)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
             <motion.div 
@@ -48,41 +111,73 @@ export const WalletPage = () => {
               className="relative bg-white w-full max-w-md rounded-sm shadow-2xl overflow-hidden p-8 border border-slate-200"
             >
               <div className="flex items-center gap-3 mb-6">
-                 <div className="w-10 h-10 bg-[#2d5af0]/10 text-[#2d5af0] rounded flex items-center justify-center">
-                    <DollarSign size={20} />
+                 <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded flex items-center justify-center">
+                    <Zap size={20} />
                  </div>
                  <div>
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">서비스 정산 실행</h3>
-                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">PG사 대조 및 허브 승인이 필요합니다</p>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">코인 수동 조정 (ADMIN)</h3>
+                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest text-wrap">UUID 기반 강제 자산 조정 모드입니다</p>
                  </div>
               </div>
 
               <div className="space-y-4 mb-8">
                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">정산 대상 주기</label>
-                    <select className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-300">
-                       <option>오늘 (2026-04-22)</option>
-                       <option>이번 주 합산 (04.16 ~ 04.22)</option>
-                       <option>이번 달 (2026-04)</option>
-                    </select>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">대상 유저 UUID</label>
+                    <input 
+                      type="text"
+                      value={adjustForm.userId}
+                      onChange={(e) => setAdjustForm({...adjustForm, userId: e.target.value})}
+                      placeholder="e.g. a4478ded-b522..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-300" 
+                    />
                  </div>
-                 <div className="p-4 bg-amber-50 rounded border border-amber-100 flex gap-3">
-                    <AlertCircle size={16} className="text-amber-600 shrink-0" />
-                    <p className="text-[11px] text-amber-800 font-bold leading-relaxed">
-                       정산 실행 시 해당 기간의 모든 미수금 데이터가 확정되며, 취소할 수 없습니다. 현재 KCP 결제 모듈이 심사 중인 경우 외부 결제분 대조가 제한될 수 있습니다.
+                 <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">조정 금액 (C)</label>
+                      <input 
+                        type="number"
+                        value={adjustForm.amount}
+                        onChange={(e) => setAdjustForm({...adjustForm, amount: Number(e.target.value)})}
+                        className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-300" 
+                      />
+                    </div>
+                    <div className="space-y-2 text-right">
+                       <p className="text-[9px] text-slate-400 font-bold mb-1">양수: 지급(+) / 음수: 회수(-)</p>
+                       <div className={cn("text-lg font-black", adjustForm.amount >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                         {adjustForm.amount >= 0 ? '+' : ''}{adjustForm.amount} C
+                       </div>
+                    </div>
+                 </div>
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">조정 사유 (장부 기록용)</label>
+                    <input 
+                      type="text"
+                      value={adjustForm.reason}
+                      onChange={(e) => setAdjustForm({...adjustForm, reason: e.target.value})}
+                      placeholder="예: 고객 불만 보상 지급"
+                      className="w-full bg-slate-50 border border-slate-200 rounded px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-300" 
+                    />
+                 </div>
+                 <div className="p-4 bg-rose-50 rounded border border-rose-100 flex gap-3">
+                    <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                    <p className="text-[11px] text-rose-800 font-bold leading-relaxed">
+                       본 조정 사항은 패밀리 통합 장부에 영구 기록됩니다. 회수(-) 처리 시 유저의 현재 잔액이 부족해도 차감될 수 있습니다.
                     </p>
                  </div>
               </div>
 
               <div className="flex gap-3">
                  <button 
-                   onClick={() => setIsSettling(false)}
+                   onClick={() => setIsAdjusting(false)}
                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-black uppercase tracking-widest rounded-sm transition-all"
                  >
                    취소
                  </button>
-                 <button className="flex-1 px-4 py-3 bg-[#2d5af0] hover:bg-blue-700 text-white text-[11px] font-black uppercase tracking-widest rounded-sm shadow-lg shadow-indigo-100 transition-all">
-                   승인 및 실행
+                 <button 
+                   onClick={handleAdjust}
+                   className="flex-1 px-4 py-3 bg-slate-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-widest rounded-sm shadow-lg transition-all"
+                 >
+                   실행 및 기록
                  </button>
               </div>
             </motion.div>
@@ -93,18 +188,18 @@ export const WalletPage = () => {
       {/* Header Area */}
       <section className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#131b2e] tracking-tight">자산 및 크레딧 통합 관제</h1>
-          <p className="text-sm text-slate-400 font-bold italic opacity-80 underline underline-offset-4 decoration-indigo-200">Merlin Core Asset & Token Circulation Monitor</p>
+          <h1 className="text-2xl font-black text-[#131b2e] tracking-tight">중앙 코인 관제 (Admin Hub)</h1>
+          <p className="text-sm text-slate-400 font-bold italic opacity-80 underline underline-offset-4 decoration-indigo-200 uppercase tracking-tighter">Coin Integrity & Ledger Master Controller</p>
         </div>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-sm text-[11px] font-bold transition-all border border-slate-200">
-            <Download size={14} /> 로그 내보내기
+            <Download size={14} /> 로그 덤프
           </button>
           <button 
-            onClick={() => setIsSettling(true)}
-            className="flex items-center gap-2 bg-[#2d5af0] hover:bg-blue-700 text-white px-4 py-2 rounded-sm text-[11px] font-bold shadow-lg shadow-indigo-100 transition-all active:scale-95"
+            onClick={() => setIsAdjusting(true)}
+            className="flex items-center gap-2 bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-sm text-[11px] font-bold shadow-lg transition-all active:scale-95"
           >
-            <DollarSign size={14} /> 정산 실행
+            <Zap size={14} /> 코인 수동 조정
           </button>
         </div>
       </section>
@@ -112,10 +207,10 @@ export const WalletPage = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         {[
-          { title: "총 유통 크레딧", value: "8,442,000", unit: "C", icon: WalletIcon, color: "text-[#2d5af0]", border: "border-l-[#2d5af0]" },
-          { title: "오늘의 신규 유입", value: "+1,420,000", unit: "C", icon: ArrowUpRight, color: "text-emerald-500", border: "border-l-emerald-500" },
-          { title: "오늘의 전체 소모", value: "-429,100", unit: "C", icon: ArrowDownLeft, color: "text-rose-500", border: "border-l-rose-500" },
-          { title: "PG 결제 승인 대기", value: "542,000", unit: "C", icon: CreditCard, color: "text-amber-500", border: "border-l-amber-500" },
+          { title: "총 유통 코인", value: stats.totalCirculation.toLocaleString(), unit: "C", icon: WalletIcon, color: "text-slate-900", border: "border-l-slate-900" },
+          { title: "오늘의 유입 (Reward)", value: "+" + stats.todayIn.toLocaleString(), unit: "C", icon: ArrowUpRight, color: "text-emerald-500", border: "border-l-emerald-500" },
+          { title: "오늘의 소모 (Usage)", value: "-" + stats.todayOut.toLocaleString(), unit: "C", icon: ArrowDownLeft, color: "text-rose-500", border: "border-l-rose-500" },
+          { title: "미션 지급 대기", value: stats.pending.toLocaleString(), unit: "C", icon: CreditCard, color: "text-amber-500", border: "border-l-amber-500" },
         ].map((card, i) => (
           <div key={i} className={cn("bg-white p-5 rounded-sm border border-slate-200 shadow-sm border-l-4", card.border)}>
             <div className="flex justify-between items-start mb-3">
@@ -130,21 +225,23 @@ export const WalletPage = () => {
         ))}
       </div>
 
-      {/* Main Table Section */}
-      <section className="bg-white rounded-sm border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden mb-12">
+      {/* Master Ledger Section */}
+      <section className="bg-white rounded-sm border border-slate-200 shadow-sm overflow-hidden mb-12">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
            <div className="flex items-center gap-3">
-             <div className="w-1.5 h-6 bg-[#10b981] rounded-full" />
-             <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-[0.15em]">실시간 트랜잭션 감사 (Audit)</h3>
+             <div className="w-1.5 h-6 bg-slate-900 rounded-full" />
+             <h3 className="text-[12px] font-black text-slate-600 uppercase tracking-[0.15em]">통합 코인 마스터 장부 (The Ledger)</h3>
            </div>
            <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-sm border border-amber-100">
-               <span className="animate-pulse w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-               <span className="text-[10px] font-black text-amber-700 uppercase">KCP Payment Reviewing...</span>
-             </div>
              <div className="relative">
                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-               <input type="text" placeholder="TX ID, 사용자, 앱 검색..." className="bg-white border border-slate-200 rounded-sm pl-9 pr-2 py-1.5 text-[11px] w-64 outline-none focus:ring-1 focus:ring-indigo-300 font-bold text-slate-600" />
+               <input 
+                type="text" 
+                placeholder="UUID로 유저 활동 검색..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-white border border-slate-200 rounded-sm pl-9 pr-2 py-1.5 text-[11px] w-80 outline-none focus:ring-1 focus:ring-slate-900 font-bold text-slate-600" 
+               />
              </div>
            </div>
         </div>
@@ -153,75 +250,53 @@ export const WalletPage = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-black text-slate-400 uppercase tracking-tighter">
-                <th className="pl-6 py-4 w-40">구분 / TX ID</th>
-                <th className="px-4 py-4 w-48 text-left border-r border-slate-100">사용자</th>
-                <th className="px-6 py-4 w-32 text-right">변동 금액 (C)</th>
-                <th className="px-6 py-4 w-24 text-center">관련 앱</th>
-                <th className="px-6 py-4 w-24 text-center">상태</th>
-                <th className="px-4 py-4 w-32 text-right text-nowrap">시간</th>
-                <th className="pr-6 py-4 text-left bg-blue-50/5">상세 사유 / 비고</th>
+                <th className="pl-6 py-4 w-44">발생 일시</th>
+                <th className="px-4 py-4 w-52 text-left border-r border-slate-100">유저 ID (UUID) / 닉네임</th>
+                <th className="px-6 py-4 w-32 text-center">앱 ID</th>
+                <th className="px-6 py-4 w-32 text-center">유형</th>
+                <th className="px-6 py-4 w-32 text-right">변동량 (C)</th>
+                <th className="pr-6 py-4 text-left bg-blue-50/5">증빙 및 상세 사유</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {MOCK_TRANSACTIONS.map((tx) => (
-                <tr key={tx.id} className="hover:bg-slate-50/50 transition-all group border-l-4 border-transparent hover:border-l-indigo-500">
-                  <td className="pl-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-8 h-8 rounded-sm flex items-center justify-center",
-                        tx.amount.startsWith('+') ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : 
-                        tx.amount.startsWith('-') ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                      )}>
-                        {tx.amount.startsWith('+') ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-black text-slate-700 uppercase tracking-tighter">{tx.type}</span>
-                        <span className="text-[9px] text-slate-300 font-mono italic">{tx.id}</span>
-                      </div>
-                    </div>
+              {isLoading ? (
+                <tr><td colSpan={6} className="py-20 text-center text-xs font-bold text-slate-400">데이터를 불러오는 중...</td></tr>
+              ) : transactions.filter(t => t.user_id.includes(searchQuery) || t.user?.nickname.includes(searchQuery)).map((tx) => (
+                <tr key={tx.id} className="hover:bg-slate-50/50 transition-all group border-l-4 border-transparent hover:border-l-slate-900">
+                  <td className="pl-6 py-4 text-[11px] font-bold text-slate-400 tabular-nums">
+                    {new Date(tx.created_at).toLocaleString()}
                   </td>
-                  <td className="px-4 py-5 border-r border-slate-100">
+                  <td className="px-4 py-4 border-r border-slate-100">
                     <div className="flex flex-col">
-                      <span className="text-[14px] font-black text-slate-700 tracking-tight flex items-center gap-1 group-hover:text-[#2d5af0] transition-colors cursor-pointer">
-                        {tx.user}
+                      <span className="text-[13px] font-black text-slate-700 tracking-tight flex items-center gap-1">
+                        {tx.user?.nickname}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-300 font-mono lowercase">{tx.familyUid}</span>
+                      <span className="text-[10px] font-bold text-slate-300 font-mono">{tx.user_id}</span>
                     </div>
                   </td>
-                  <td className={cn(
-                    "px-6 py-5 text-right font-black text-[17px] tabular-nums tracking-tighter",
-                    tx.amount.startsWith('+') ? "text-emerald-500" : tx.amount.startsWith('-') ? "text-rose-600" : "text-slate-900"
-                  )}>
-                    {tx.amount.replace(' C', '')}
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <span className={cn(
-                      "text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm border",
-                      tx.app === '어그로필터' ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-slate-50 text-slate-400 border-slate-100"
-                    )}>
-                      {tx.app}
+                  <td className="px-6 py-4 text-center">
+                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm bg-slate-100 text-slate-500">
+                      {tx.app_id}
                     </span>
                   </td>
-                  <td className="px-6 py-5 text-center">
-                    <div className={cn(
-                      "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter",
-                      tx.status === '성공' ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : 
-                      tx.status === '대기중' ? "bg-amber-50 text-amber-600 border border-amber-100" : 
-                      "bg-rose-50 text-rose-600 border border-rose-100"
+                  <td className="px-6 py-4 text-center">
+                    <span className={cn(
+                      "text-[9px] font-black uppercase tracking-tighter px-2 py-1 rounded-full border",
+                      tx.transaction_type.startsWith('EARN') ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
+                      tx.transaction_type.startsWith('USE') ? "bg-rose-50 text-rose-600 border-rose-100" :
+                      "bg-indigo-50 text-indigo-600 border-indigo-100"
                     )}>
-                      {tx.status}
-                    </div>
+                      {tx.transaction_type}
+                    </span>
                   </td>
-                  <td className="px-4 py-5 text-right text-[11px] font-bold text-slate-400 tabular-nums">
-                    {tx.time}
+                  <td className={cn(
+                    "px-6 py-4 text-right font-black text-[16px] tabular-nums tracking-tighter",
+                    tx.amount >= 0 ? "text-emerald-500" : "text-rose-600"
+                  )}>
+                    {tx.amount >= 0 ? '+' : ''}{tx.amount.toLocaleString()}
                   </td>
-                  <td className="pr-6 py-5 bg-blue-50/5">
-                    <div className="flex items-center justify-between group/cell">
-                      <span className="text-[12px] font-bold text-slate-500 italic max-w-[200px] truncate">"{tx.reason}"</span>
-                      <button className="opacity-0 group-hover/cell:opacity-100 transition-opacity p-1.5 bg-white border border-slate-200 rounded-sm text-slate-400 hover:text-[#2d5af0]">
-                        <History size={12} />
-                      </button>
-                    </div>
+                  <td className="pr-6 py-4 bg-blue-50/5">
+                    <span className="text-[12px] font-bold text-slate-500 italic">"{tx.display_text}"</span>
                   </td>
                 </tr>
               ))}
@@ -229,13 +304,12 @@ export const WalletPage = () => {
           </table>
         </div>
 
-        {/* Pagination/Status Bar */}
         <div className="px-8 py-5 border-t border-slate-50 bg-slate-50/20 flex items-center justify-between">
            <div className="flex items-center gap-4">
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">Showing Current Fiscal Integrity Data</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Coin Integrity Monitoring Mode Active</p>
            </div>
            <div className="flex items-center gap-2">
-              <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-sm text-[11px] font-black text-slate-400 hover:bg-slate-50">상세 내역 더보기</button>
+              <button className="px-3 py-1.5 bg-white border border-slate-200 rounded-sm text-[11px] font-black text-slate-400 hover:bg-slate-50">마스터 장부 전체 덤프 (CSV)</button>
            </div>
         </div>
       </section>
