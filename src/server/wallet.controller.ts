@@ -53,4 +53,56 @@ router.post('/transaction', async (req, res) => {
   }
 });
 
+// 3. 과금 정책 조회 (Pricing Info)
+router.get('/pricing', async (req, res) => {
+  const { app_id, action_type } = req.query;
+  const appSecret = req.headers['x-app-secret'];
+
+  const VALID_APP_SECRET = process.env.HUB_APP_SECRET || 'merlin-family-secret-key-2026';
+  
+  if (!appSecret || appSecret !== VALID_APP_SECRET) {
+    return res.status(403).json({ success: false, message: 'App 인증에 실패했습니다.' });
+  }
+
+  if (!app_id || !action_type) {
+    return res.status(400).json({ success: false, message: 'app_id 와 action_type 파라미터가 필요합니다.' });
+  }
+
+  try {
+    const pricing = await WalletService.getPricing(app_id as string, action_type as string);
+    res.json({ success: true, data: pricing });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 4. 온보딩 미션 자동 보상 청구
+router.post('/reward/onboarding', async (req, res) => {
+  const { userId, app_id, request_id } = req.body;
+  const appSecret = req.headers['x-app-secret'];
+
+  const VALID_APP_SECRET = process.env.HUB_APP_SECRET || 'merlin-family-secret-key-2026';
+  
+  if (!appSecret || appSecret !== VALID_APP_SECRET) {
+    return res.status(403).json({ success: false, message: 'App 인증에 실패했습니다.' });
+  }
+
+  if (!userId || !app_id || !request_id) {
+    return res.status(400).json({ success: false, message: '필수 데이터가 누락되었습니다.' });
+  }
+
+  try {
+    const result = await WalletService.processTransaction(userId, {
+      amount: 1000, // 온보딩 보상은 1,000C 고정 (강령)
+      app_id: app_id,
+      request_id: `REWARD-ONB-${request_id}`, // 중복 방지 접두사
+      transaction_type: 'EARN_ONBOARDING',
+      display_text: `${app_id} 최초 온보딩 미션 완료 보상`
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

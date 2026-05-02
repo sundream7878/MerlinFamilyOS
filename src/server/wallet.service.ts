@@ -22,6 +22,21 @@ export const WalletService = {
   },
 
   /**
+   * 과금 단가표 조회 (Pricing Info)
+   */
+  getPricing: async (appId: string, actionType: string) => {
+    if (!supabase) return { price: 0, currency: 'C' };
+
+    // 예: app_id가 AGGRO_FILTER인 경우 해당 단가표 조회 (현재는 임시 하드코딩 또는 mock DB 조회)
+    // 실제 운영시에는 family_aggro_video_pricing 등에서 조회합니다.
+    if (appId === 'AGGRO_FILTER' && actionType === 'VIDEO_ANALYSIS') {
+      return { price: 150, currency: 'C', description: '영상 딥러닝 분석 원가 + 허브 마진' };
+    }
+
+    return { price: 10, currency: 'C', description: '기본 API 호출 요금' };
+  },
+
+  /**
    * 코인 사용/충전 처리 (멱등성 보장, UUID 기반)
    */
   processTransaction: async (userId: string, payload: { 
