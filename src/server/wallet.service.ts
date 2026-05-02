@@ -24,16 +24,62 @@ export const WalletService = {
   /**
    * 과금 단가표 조회 (Pricing Info)
    */
-  getPricing: async (appId: string, actionType: string) => {
-    if (!supabase) return { price: 0, currency: 'C' };
+  getPricing: async (appId: string, actionType: string, resourceId?: string) => {
+    if (!supabase) return { status: 'NOT_FOUND', price: 0, currency: 'C' };
 
-    // 예: app_id가 AGGRO_FILTER인 경우 해당 단가표 조회 (현재는 임시 하드코딩 또는 mock DB 조회)
-    // 실제 운영시에는 family_aggro_video_pricing 등에서 조회합니다.
-    if (appId === 'AGGRO_FILTER' && actionType === 'VIDEO_ANALYSIS') {
-      return { price: 150, currency: 'C', description: '영상 딥러닝 분석 원가 + 허브 마진' };
+    // AGGRO_FILTER: 캐싱된 고정 단가 조회
+    if (appId === 'AGGRO_FILTER' && resourceId) {
+      const { data } = await supabase
+        .from('family_aggro_video_pricing')
+        .select('fixed_coin_price')
+        .eq('video_id', resourceId)
+        .single();
+        
+      if (data) {
+        return { status: 'CACHED', price: data.fixed_coin_price, currency: 'C', description: '기존 분석된 영상 고정가 (순수익)' };
+      } else {
+        return { status: 'NOT_FOUND', price: 0, currency: 'C', description: '신규 분석 필요 (동적 과금 대상)' };
+      }
     }
 
-    return { price: 10, currency: 'C', description: '기본 API 호출 요금' };
+    return { status: 'DEFAULT', price: 10, currency: 'C', description: '기본 API 호출 요금' };
+  },
+
+  /**
+   * 동적 과금 계산 및 청구 (신규 분석 시)
+   */
+  setDynamicPricingAndCharge: async (userId: string, payload: {
+    app_id: string;
+    resource_id: string;
+    raw_cost: number;
+    request_id: string;
+    display_text: string;
+  }) => {
+    if (!supabase) throw new Error('DB 연결이 없습니다.');
+
+    // 1. 마진 계산 (공장장님 지시: 어그로필터는 3배)
+    const marginMultiplier = payload.app_id === 'AGGRO_FILTER' ? 3 : 1; 
+    const fixedCoinPrice = Math.ceil(payload.raw_cost * marginMultiplier);
+
+    // 2. 단가표 영구 박제 (가장 먼저 캐싱)
+    if (payload.app_id === 'AGGRO_FILTER') {
+      await supabase.from('family_aggro_video_pricing').upsert({
+        video_id: payload.resource_id,
+        raw_token_cost: payload.raw_cost,
+        margin_multiplier: marginMultiplier,
+        fixed_coin_price: fixedCoinPrice,
+        created_at: new Date().toISOString()
+      }, { onConflict: 'video_id' });
+    }
+
+    // 3. 유저 잔액 차감 (processTransaction 재사용하여 장부 기록)
+    return await WalletService.processTransaction(userId, {
+      amount: -fixedCoinPrice,
+      app_id: payload.app_id,
+      request_id: payload.request_id,
+      transaction_type: 'USE_DYNAMIC_ANALYSIS',
+      display_text: payload.display_text
+    });
   },
 
   /**

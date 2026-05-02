@@ -55,7 +55,7 @@ router.post('/transaction', async (req, res) => {
 
 // 3. 과금 정책 조회 (Pricing Info)
 router.get('/pricing', async (req, res) => {
-  const { app_id, action_type } = req.query;
+  const { app_id, action_type, resource_id } = req.query;
   const appSecret = req.headers['x-app-secret'];
 
   const VALID_APP_SECRET = process.env.HUB_APP_SECRET || 'merlin-family-secret-key-2026';
@@ -69,7 +69,7 @@ router.get('/pricing', async (req, res) => {
   }
 
   try {
-    const pricing = await WalletService.getPricing(app_id as string, action_type as string);
+    const pricing = await WalletService.getPricing(app_id as string, action_type as string, resource_id as string);
     res.json({ success: true, data: pricing });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -98,6 +98,35 @@ router.post('/reward/onboarding', async (req, res) => {
       request_id: `REWARD-ONB-${request_id}`, // 중복 방지 접두사
       transaction_type: 'EARN_ONBOARDING',
       display_text: `${app_id} 최초 온보딩 미션 완료 보상`
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 5. 동적 과금 계산 및 청구 (신규 영상 분석 시)
+router.post('/transaction/dynamic', async (req, res) => {
+  const { userId, app_id, resource_id, raw_cost, request_id, display_text } = req.body;
+  const appSecret = req.headers['x-app-secret'];
+
+  const VALID_APP_SECRET = process.env.HUB_APP_SECRET || 'merlin-family-secret-key-2026';
+  
+  if (!appSecret || appSecret !== VALID_APP_SECRET) {
+    return res.status(403).json({ success: false, message: 'App 인증에 실패했습니다.' });
+  }
+
+  if (!userId || !app_id || !resource_id || raw_cost === undefined || !request_id) {
+    return res.status(400).json({ success: false, message: '필수 데이터가 누락되었습니다.' });
+  }
+
+  try {
+    const result = await WalletService.setDynamicPricingAndCharge(userId, {
+      app_id,
+      resource_id,
+      raw_cost: Number(raw_cost),
+      request_id,
+      display_text: display_text || `${app_id} 동적 분석 과금`
     });
     res.json(result);
   } catch (error: any) {
