@@ -38,10 +38,7 @@ export const WalletService = {
       if (data) {
         return { status: 'CACHED', price: data.fixed_coin_price, currency: 'C', description: '기존 분석된 영상 고정가 (순수익)' };
       } else {
-        // [레거시 방어 로직] 허브 DB에 단가가 없어도 어그로필터 로컬 DB에는 존재하는 400여 개의 기존 영상일 수 있음.
-        // 이 경우 어그로필터는 재분석을 하지 않으므로 30C를 반환하여 기존처럼 과금할 수 있도록 폴백 처리.
-        // 완전 신규 영상인 경우 어그로필터가 이를 무시하고 동적 과금 라인(/transaction/dynamic)을 태움.
-        return { status: 'NOT_FOUND', price: 30, currency: 'C', description: '신규 분석 대상 또는 레거시 영상 기본가' };
+        return { status: 'NOT_FOUND', price: 0, currency: 'C', description: '신규 분석 필요 (동적 과금 대상)' };
       }
     }
 
