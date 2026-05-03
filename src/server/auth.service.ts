@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { Resend } from 'resend';
 import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
+import { WalletService } from './wallet.service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const JWT_SECRET = process.env.JWT_SECRET || 'merlin-hub-secret-2026';
@@ -93,7 +94,7 @@ export const AuthService = {
   },
 
   // 2. OTP 검증 및 JWT 발급
-  verifyOTP: async (email: string, code: string, appId?: string) => {
+  verifyOTP: async (email: string, code: string, appId?: string, referralCode?: string) => {
     // [DB 검증] family_otp 테이블에서 조회
     const now = new Date().toISOString();
     console.log(`[Auth] Verifying OTP for ${email}, code: ${code}, now: ${now}`);
@@ -190,10 +191,13 @@ export const AuthService = {
       } else {
         // 2. 신규 유저 생성 (UUID는 Supabase가 자동 생성)
         console.log(`[Auth] Creating new user for ${email}...`);
+        const myReferralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+        
         const { data: newUser, error: insertError } = await supabase.from('family_users').insert({
           email,
           nickname: email.split('@')[0],
-          first_app_id: appId || 'UNKNOWN'
+          first_app_id: appId || 'UNKNOWN',
+          referral_code: myReferralCode
         }).select().single();
 
         if (insertError) {
@@ -211,7 +215,32 @@ export const AuthService = {
           }
         } else {
           userId = newUser.id;
-          console.log(`[Auth] New user created: ${userId}`);
+          console.log(`[Auth] New user created: ${userId} with code: ${myReferralCode}`);
+
+          // --- [추천인 보상 처리] ---
+          if (referralCode) {
+            console.log(`[Auth] Referral code detected: ${referralCode}`);
+            const { data: referrer } = await supabase
+              .from('family_users')
+              .select('id')
+              .eq('referral_code', referralCode.toUpperCase())
+              .single();
+
+            if (referrer && referrer.id !== userId) {
+              console.log(`[Auth] Referrer found: ${referrer.id}. Granting rewards...`);
+              
+              // 1. 관계 기록
+              await supabase.from('family_referrals').insert({
+                referrer_id: referrer.id,
+                invitee_id: userId,
+                app_id: appId || 'UNKNOWN'
+              });
+
+              // 2. 지갑 보상 (비동기로 실행하여 응답 속도 유지)
+              WalletService.rewardReferral(referrer.id, userId, appId || 'UNKNOWN')
+                .catch(err => console.error('[Auth] Reward failed:', err));
+            }
+          }
         }
       }
 
@@ -243,7 +272,7 @@ export const AuthService = {
     if (supabase) {
       const { data, error: profileError } = await supabase
         .from('family_users')
-        .select('nickname, avatar_url')
+        .select('nickname, avatar_url, referral_code')
         .eq('email', email)
         .single();
 
@@ -259,7 +288,8 @@ export const AuthService = {
       userId,
       email,
       nickname: profile?.nickname || email.split('@')[0],
-      avatar_url: profile?.avatar_url
+      avatar_url: profile?.avatar_url,
+      referral_code: profile?.referral_code
     };
   },
 
@@ -268,7 +298,7 @@ export const AuthService = {
     if (!supabase) return null;
     const { data } = await supabase
       .from('family_users')
-      .select('nickname, avatar_url')
+      .select('nickname, avatar_url, referral_code')
       .eq('email', email)
       .single();
     return data;

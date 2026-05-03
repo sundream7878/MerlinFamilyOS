@@ -18,11 +18,11 @@ router.post('/request-otp', async (req, res) => {
 
 // 2. OTP 검증
 router.post('/verify-otp', async (req, res) => {
-  const { email, code, appId } = req.body;
+  const { email, code, appId, referralCode } = req.body;
   if (!email || !code) return res.status(400).json({ success: false, message: '이메일과 코드가 필요합니다.' });
 
   try {
-    const result = await AuthService.verifyOTP(email, code, appId);
+    const result = await AuthService.verifyOTP(email, code, appId, referralCode);
     res.json(result);
   } catch (error: any) {
     res.status(401).json({ success: false, message: error.message });
@@ -47,7 +47,8 @@ router.get('/me', async (req, res) => {
         email: decoded.email, 
         userId: decoded.userId,
         nickname: profile?.nickname,
-        avatar_url: profile?.avatar_url
+        avatar_url: profile?.avatar_url,
+        referral_code: profile?.referral_code
       }
     });
   } catch (error: any) {

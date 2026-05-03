@@ -135,5 +135,39 @@ export const WalletService = {
       balance: newBalance,
       status: 'SUCCESS'
     };
+  },
+
+  /**
+   * 추천인 보상 지급
+   */
+  rewardReferral: async (referrerId: string, inviteeId: string, appId: string) => {
+    if (!supabase) return { success: false, message: 'DB 연결 없음' };
+
+    const REWARD_REFERRER = 50; // 추천인 50C
+    const REWARD_INVITEE = 100;  // 피추천인 100C
+
+    // 1. 피추천인(가입자) 보상
+    const inviteeRes = await WalletService.processTransaction(inviteeId, {
+      amount: REWARD_INVITEE,
+      app_id: appId,
+      request_id: `reward_ref_invitee_${inviteeId}`,
+      transaction_type: 'REWARD_REFERRAL_INVITEE',
+      display_text: '친구 초대 가입 환영 보상 (100C)'
+    });
+
+    // 2. 추천인 보상
+    const referrerRes = await WalletService.processTransaction(referrerId, {
+      amount: REWARD_REFERRER,
+      app_id: appId,
+      request_id: `reward_ref_referrer_${inviteeId}`, // 가입자당 한 번씩만 지급되도록 request_id 설정
+      transaction_type: 'REWARD_REFERRAL_REFERRER',
+      display_text: '친구 초대 감사 보상 (50C)'
+    });
+
+    return { 
+      success: true, 
+      referrerBalance: referrerRes.balance, 
+      inviteeBalance: inviteeRes.balance 
+    };
   }
 };
